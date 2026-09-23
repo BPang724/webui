@@ -1,11 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="description" content="AutOutline - 讓想法自然成形的筆記工作區">
+    <title>AutOutline | 智慧大綱工作區</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-    
+    <div class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="#" aria-label="AutOutline 首頁">
+                <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span>AutOutline</span>
+            </a>
+
+            <label class="title-input" for="document-title">
+                <span class="title-icon" aria-hidden="true">✦</span>
+                <input id="document-title" type="text" value="我的第一份大綱" aria-label="文件標題">
+                <span class="save-state"><span class="status-dot"></span>已儲存</span>
+            </label>
+
+            <div class="top-actions">
+                <button class="icon-button" type="button" aria-label="搜尋">⌕</button>
+                <button class="avatar" type="button" aria-label="開啟個人選單">YU</button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="welcome-panel">
+                <div class="eyebrow"><span class="sparkle">✦</span> 智慧大綱工作區</div>
+                <h1>讓想法，<em>自然成形。</em></h1>
+                <p>把零散的靈感整理成清晰、有方向的內容。</p>
+                <div class="quick-actions">
+                    <button class="primary-button" type="button"><span>＋</span> 新增節點</button>
+                    <button class="text-button" type="button">看看範例 <span>→</span></button>
+                </div>
+            </section>
+
+            <section class="outline-card" aria-label="文件大綱">
+                <div class="card-toolbar">
+                    <div>
+                        <span class="section-label">目前大綱</span>
+                        <span class="node-count">3 個節點</span>
+                    </div>
+                    <button class="more-button" type="button" aria-label="更多選項">•••</button>
+                </div>
+                <div class="outline-list">
+                    <article class="outline-item active">
+                        <span class="drag-handle" aria-hidden="true">⠿</span>
+                        <span class="node-number">01</span>
+                        <div class="node-copy"><h2>開場與核心想法</h2><p>從這裡開始，寫下最重要的那個念頭。</p></div>
+                        <span class="node-arrow">→</span>
+                    </article>
+                    <article class="outline-item">
+                        <span class="drag-handle" aria-hidden="true">⠿</span>
+                        <span class="node-number">02</span>
+                        <div class="node-copy"><h2>我們想解決的問題</h2><p>描述背景、挑戰，以及值得被看見的細節。</p></div>
+                        <span class="node-arrow">→</span>
+                    </article>
+                    <article class="outline-item">
+                        <span class="drag-handle" aria-hidden="true">⠿</span>
+                        <span class="node-number">03</span>
+                        <div class="node-copy"><h2>接下來的方向</h2><p>把下一步寫清楚，讓好點子繼續往前走。</p></div>
+                        <span class="node-arrow">→</span>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer-note"><span class="footer-line"></span>專注於你的想法，剩下的交給 AutOutline。</footer>
+    </div>
 </body>
 </html>
