@@ -222,17 +222,20 @@ git push -u origin main
 ## ✅ W01檢查點
 
 - [x] `node --version`、`npm --version`、`git --version`都有輸出
-- [ ] 專案資料夾建在`code`下，VSCode能開啟
-- [ ] `.gitignore`是第一個建立的檔案
-- [ ] `git log --oneline`看得到你的第一個commit
-- [ ] GitHub上看得到你的repo與README
+- [x] 專案資料夾建在`code`下，VSCode能開啟
+- [x] `.gitignore`是第一個建立的檔案
+- [x] `git log --oneline`看得到你的第一個commit
+- [x] GitHub上看得到你的repo與README
 
 ## 🎯 延伸練習
 
 1. 用`git log --oneline --graph`觀察歷史
+- 2d805e8 (HEAD -> main, origin/main) Initial commit
 2. 故意修改README，用`git diff`看差異，再commit
 3. 查一下：`git add .` 跟 `git add -A` 有什麼差別？
-
+- 在範圍上有所差異
+    - git add .是當前目錄及子目錄
+    - git add -A = git add -all 是涵蓋整個git目錄
 ## 🤝 這週怎麼問AI
 
 ```
@@ -344,3 +347,292 @@ git push -u origin main
 ```
 
 ---
+
+# W03 — 從本機開發到公開部署
+
+> **階段**：學生已完成網站demo，「**讓作品上線、公開存取**」
+> **目標**：支援https，以便公開服務，或支援Line bot
+
+---
+
+## 📋 大綱
+
+| 階段 | 內容 | 時間估計 |
+|------|------|----------|
+| Part 1 | ASGI 概念 & uvicorn 啟動靜態網站 | ~25 min |
+| Part 2 | IIS URL Rewrite 反向代理設定 | ~20 min |
+| Part 3 | 學生實作 & 驗收 | ~15 min |
+
+---
+
+## Part 1：用 uvicorn 啟動你的靜態網站
+
+### 1.1 什麼是 ASGI？
+
+| 比較項目 | WSGI (傳統) | ASGI (新一代) |
+|----------|-------------|---------------|
+| 全稱 | Web Server Gateway Interface | **Asynchronous** Server Gateway Interface |
+| 特性 | 同步、一個請求佔一個 thread | 非同步、支援高併發 |
+| 支援協定 | HTTP only | HTTP + **WebSocket** |
+| 代表框架 | Flask, Django (傳統) | FastAPI, Starlette, Django 4+ |
+
+> 💡 **白話說**：ASGI 就是 Python Web 應用程式與伺服器之間的「溝通規格」，uvicorn 是實作這個規格的高效能伺服器。
+
+### 1.2 為什麼選 uvicorn？
+
+- ⚡ 基於 `uvloop` + `httptools`，效能極佳
+- 🔄 支援 `--reload` 熱重載，開發超方便
+- 📦 安裝簡單，一行指令搞定
+- 🎯 搭配 FastAPI / Starlette 的 `StaticFiles`，直接服務 HTML/CSS/JS
+
+### 1.3 環境安裝
+
+```bash
+# 建議使用 pip（學生機已有 Python 3.10+）
+pip install fastapi uvicorn aiofiles
+```
+
+### 1.4 專案目錄結構
+
+假設學生的網站雛形放在 `site/` 資料夾中：
+
+```
+my_project/
+├── server.py # 進入點（啟動用）
+└── site/ # ← 學生的網站雛形（HTML5 + CSS3 + JS）
+├── index.html
+├── css/
+│ └── style.css
+├── js/
+│ └── app.js
+└── images/
+└── ...
+```
+
+### 1.5 撰寫 `server.py`（最精簡版本）
+
+```python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()
+
+# 關鍵：html=True 讓它自動找 index.html
+app.mount("/", StaticFiles(directory="site", html=True), name="site")
+```
+
+> ✅ `html=True` 的效果：
+> - 訪問 `/` → 自動回傳 `site/index.html`
+> - 訪問 `/about` → 自動回傳 `site/about.html`
+> - 不用為每個頁面手動寫路由！
+
+### 1.6 啟動伺服器
+
+```bash
+# 開發模式（含熱重載）
+uvicorn server:app --reload --host 0.0.0.0 --port 7777
+```
+
+| 參數 | 說明 |
+|------|------|
+| `server:app` | `server.py` 檔案中的 `app` 物件 |
+| `--reload` | 程式碼修改後自動重啟（開發用） |
+| `--host 0.0.0.0` | ⚠️ 綁定所有網路介面，讓外部可連入 |
+| `--port 7777` | 指定 port 為 **7777** |
+
+### 1.7 驗證
+
+啟動後，學生可以在瀏覽器打開：
+
+```
+http://localhost:7777/
+```
+
+看到自己的網站就代表成功 🎉
+
+> ⚠️ 此時其他人可以透過 `http://<你的IP>:7777/` 存取，但這是 **HTTP** 且 port 不標準，不適合公開展示。
+
+---
+
+## Part 2：IIS URL Rewrite — 反向代理讓作品公開上線
+
+### 2.1 目標架構
+
+```
+┌──────────────────────────────────┐
+│ IIS (Windows Server) │
+使用者瀏覽器 │ HTTPS :443 (SSL 憑證) │
+│ │ │
+│ HTTPS 請求 │ URL Rewrite Rules: │
+▼ │ │
+https://demo…/A11234567 │ /A11234567/* → http://IP:7777/ │
+│ /B22345678/* → http://IP:7777/ │
+│ /C33456789/* → http://IP:7777/ │
+│ ... │
+└──────────┬───────────────────────┘
+│ HTTP (內部反向代理)
+▼
+┌──────────────────────┐
+│ 學生的 uvicorn :7777 │
+│ (各自的電腦/VM) │
+└──────────────────────┘
+```
+
+**效果**：
+- 對外：`https://demo…/<student_no>` （HTTPS、好記、專業）
+- 對內：`http://<student_IP>:7777/` （uvicorn 原始服務）
+
+### 2.2 IIS 必要模組（老師已在伺服器安裝）
+
+| 模組 | 用途 |
+|------|------|
+| **URL Rewrite Module 2.0+** | URL 規則比對與重寫 |
+| **Application Request Routing (ARR) 3.0+** | 反向代理轉發能力 |
+| **SSL 憑證** | 提供 HTTPS 加密連線 |
+
+### 2.3 啟用 ARR Proxy（伺服器層級，只需做一次。老師已在伺服器安裝）
+
+1. 開啟 **IIS Manager**
+2. 點擊最上層 **Server 節點**
+3. 雙擊 **Application Request Routing Cache**
+4. 右側 Actions → **Server Proxy Settings**
+5. ✅ 勾選 **Enable proxy**
+6. 套用 (Apply)
+
+### 2.4 URL Rewrite 規則設定
+
+在 IIS 網站根目錄的 `web.config` 中加入規則：參考 `web03_iis_url_rewrite_uvicorn.md`
+
+### 2.5 批次產生規則（Python 輔助腳本）
+
+如果學生人數多，可用腳本自動產生：
+
+```python
+# generate_rules.py
+students = {
+"A11234567": "192.168.x.101",
+"B22345678": "192.168.x.102",
+"C33456789": "192.168.x.103",
+# ... 從名單匯入
+}
+
+for sid, ip in students.items():
+print(f'''
+<rule name="Student_{sid}" stopProcessing="true">
+<match url="^{sid}(/.*)?$" />
+<action type="Rewrite" url="http://{ip}:7777/{{R:1}}" />
+</rule>''')
+```
+
+```bash
+python generate_rules.py > rules_fragment.xml
+# 再貼入 web.config 的 <rules> 區塊內
+```
+
+### 2.6 HTTPS (SSL Offloading)
+
+```
+瀏覽器 ←── HTTPS (加密) ──→ IIS ←── HTTP (明文) ──→ uvicorn
+```
+
+- IIS 負責 SSL 終結（SSL Offloading / SSL Termination）
+- 內部轉發到 uvicorn 用 HTTP 即可，**不需要**學生自己處理憑證
+- 學生的作品自動享有 HTTPS 🔒
+
+---
+
+## Part 3：學生實作步驟 Checklist
+- 有修DBS課程學生，在上課使用FastAPI建立好Web Homepage和API服務，可以略過以下步驟。
+- 只有修Web Programming課程學生，可以直接執行：
+```powershell
+npx.cmd http-server . -p 7777 -a 0.0.0.0
+```
+
+### 若要用FastAPI架站，學生需要做的事（約 15 分鐘）
+
+- [x] **Step 1**：確認 Python 環境，安裝套件
+```bash
+pip install fastapi uvicorn aiofiles
+```
+
+- [x] **Step 2**：在專案根目錄建立 `server.py`
+```python
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI()
+app.mount("/", StaticFiles(directory="web目錄", html=True), name="site")
+```
+
+- [x] **Step 3**：啟動 uvicorn
+```bash
+uvicorn server:app --host 0.0.0.0 --port 7777
+```
+
+- [x] **Step 4**：本機測試 → 開瀏覽器訪問 `http://localhost:7777/`
+
+- [x] **Step 5**：回報 IP 給老師（老師設定 IIS 規則）
+
+- [x] **Step 6**：公開測試 → 訪問 `https://demo…/<你的學號>`，確認作品上線 🎉
+
+### 老師需要做的事
+
+- [ ] 收集學生 IP 對照表（學號 ↔ IP）
+- [ ] 更新 IIS `web.config` 中的 Rewrite Rules
+- [ ] 確認 ARR Proxy 已啟用
+- [ ] 逐一或抽樣測試 `https://demo…/<student_no>`
+
+---
+
+## 🔧 常見問題排除
+
+### Q1：瀏覽器顯示 502 / 503 錯誤
+- ✅ 確認學生的 uvicorn 正在執行中
+- ✅ 確認 port 是 **7777** 沒打錯
+- ✅ 確認 `--host 0.0.0.0`（不是預設的 127.0.0.1）
+- ✅ 確認 Windows 防火牆允許 port 7777 的 inbound 連線
+
+### Q2：CSS / JS / 圖片載入失敗 (404)
+- ✅ 檢查 HTML 中的路徑是否為**相對路徑**
+```html
+<!-- ✅ 正確：相對路徑 -->
+<link rel="stylesheet" href="css/style.css">
+<script src="js/app.js"></script>
+
+<!-- ❌ 錯誤：絕對路徑會跑到根目錄 -->
+<link rel="stylesheet" href="/css/style.css">
+```
+- 💡 因為透過子目錄（`/<student_no>/`）存取，絕對路徑 `/css/...` 會指向 IIS 根目錄而非學生的 uvicorn
+
+### Q3：uvicorn 啟動後終端機關掉就斷了
+- 先不管，課堂上保持終端機開著即可
+- 進階：可用 `nohup` (Linux) 或 Windows 背景執行，但不在本節範圍
+
+### Q4：多個學生同一台電腦？
+- 各自使用不同 port（7777, 7778, 7779...）
+- IIS 規則也對應到各自的 port
+
+---
+
+## 📖 觀念小結
+
+| 你學到了什麼 | 對應的業界實務 |
+|-------------|---------------|
+| uvicorn 啟動靜態網站 | ASGI 伺服器部署 |
+| `--host 0.0.0.0` | 伺服器綁定與網路存取 |
+| IIS URL Rewrite | 反向代理 (Reverse Proxy) |
+| HTTPS via IIS | SSL Termination / Offloading |
+| 學號對應子路徑 | 多租戶架構 (Multi-tenancy) 概念 |
+
+> 🎓 **這就是你第一次把自己寫的網站「部署上線」的完整流程！**
+> 未來你可能會用 Nginx、Cloudflare、Docker、Kubernetes 做類似的事，但核心觀念都一樣：
+> **「寫好的東西 → 用伺服器跑起來 → 透過反向代理讓全世界看到」**
+
+---
+
+## 📚 延伸閱讀（有興趣自行探索）
+
+- [Uvicorn 官方文件](https://www.uvicorn.org/)
+- [FastAPI 靜態檔案](https://fastapi.tiangolo.com/tutorial/static-files/)
+- [IIS URL Rewrite Module](https://www.iis.net/downloads/microsoft/url-rewrite)
+- [Application Request Routing (ARR)](https://www.iis.net/downloads/microsoft/application-request-routing)
