@@ -3,7 +3,7 @@
 
 /* =========================================================
    AutOutline Lab
-   前端介面原型：目前使用模擬資料，不會呼叫實際後端。
+   實驗資料仍為原型資料；登入狀態會連接後端。
 ========================================================= */
 
 /* ---------- 共用工具 ---------- */
@@ -55,6 +55,67 @@ function statusBadge(status) {
   const cls = isSuccess ? "badge badge-success" : "badge badge-warning";
 
   return `<span class="${cls}">${escapeHTML(status)}</span>`;
+}
+
+/* ---------- Google 登入狀態 ---------- */
+
+async function initializeAuthUI() {
+  const loginLink = $("#authLogin");
+  const profile = $("#authProfile");
+  const name = $("#authName");
+  const avatar = $("#authAvatar");
+  const logoutButton = $("#authLogout");
+
+  if (!loginLink || !profile || !name || !avatar || !logoutButton) return;
+
+  if (window.location.protocol === "file:") {
+    loginLink.classList.add("hidden");
+    return;
+  }
+
+  loginLink.href = new URL("api/auth/google/login", window.location.href).href;
+
+  logoutButton.addEventListener("click", async () => {
+    logoutButton.disabled = true;
+    try {
+      const response = await fetch(
+        new URL("api/auth/logout", window.location.href),
+        { method: "POST", credentials: "same-origin" }
+      );
+      if (!response.ok) {
+        throw new Error(`登出失敗：HTTP ${response.status}`);
+      }
+      window.location.reload();
+    } catch (error) {
+      logoutButton.disabled = false;
+      console.error("無法登出", error);
+      showToast("登出失敗，請稍後再試。");
+    }
+  });
+
+  try {
+    const response = await fetch(
+      new URL("api/auth/me", window.location.href),
+      { credentials: "same-origin", cache: "no-store" }
+    );
+    if (response.status === 401) return;
+    if (!response.ok) {
+      throw new Error(`無法讀取登入狀態：HTTP ${response.status}`);
+    }
+
+    const member = await response.json();
+    name.textContent = member.name || member.email;
+    if (typeof member.picture === "string" &&
+        member.picture.startsWith("https://")) {
+      avatar.src = member.picture;
+      avatar.classList.remove("hidden");
+    }
+    loginLink.classList.add("hidden");
+    profile.classList.remove("hidden");
+  } catch (error) {
+    console.error("無法讀取登入狀態", error);
+    showToast("目前無法連線到登入服務。");
+  }
 }
 
 /* ---------- Sidebar 收合 ---------- */
@@ -1280,6 +1341,7 @@ function renderHistory() {
 /* ---------- 初始化 ---------- */
 
 function initializeApp() {
+  initializeAuthUI();
   renderWorkflowModules();
   renderInspector();
 

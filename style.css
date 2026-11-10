@@ -313,6 +313,26 @@ body.sidebar-collapsed .sidebar-toggle {
   gap: 14px;
 }
 
+.auth-profile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.auth-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .workspace-status {
   display: flex;
   align-items: center;

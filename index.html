@@ -104,6 +104,16 @@
             <span>本機工作區</span>
           </div>
 
+          <a class="btn auth-login" id="authLogin" href="api/auth/google/login">
+            使用 Google 登入
+          </a>
+
+          <div class="auth-profile hidden" id="authProfile">
+            <img class="auth-avatar hidden" id="authAvatar" alt="">
+            <span class="auth-name" id="authName"></span>
+            <button class="btn" id="authLogout" type="button">登出</button>
+          </div>
+
           <button class="btn" id="resetPageButton" type="button">
             重設設定
           </button>
