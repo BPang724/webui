@@ -1,239 +1,715 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AutOutline / LocateAnything 教學影片投影片偵測與大綱生成實驗平台">
-    <title>AutOutline | LocateAnything Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="AutOutline Lab - 影片分析實驗與參數比較平台"
+  >
+  <title>AutOutline Lab | 實驗平台</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
 </head>
+
 <body>
-    <header class="topbar">
-        <a class="brand" href="#overview" aria-label="AutOutline 儀表板首頁">
-            <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span>AutOutline<span class="brand-slash"> / </span><span class="brand-product">LocateAnything</span></span>
-        </a>
-        <div class="header-context"><span class="live-dot"></span><span id="header-context-label">研究工作區</span></div>
-    </header>
+  <div class="app">
 
-    <main class="app-layout">
-        <aside class="sidebar">
-            <div class="sidebar-caption">WORKSPACE</div>
-            <nav class="sidebar-nav" aria-label="工作區導覽">
-                <div class="sidebar-group">
-                    <div class="sidebar-group-title"><span class="sidebar-group-icon">▦</span>實驗區</div>
-                    <a class="sidebar-link active" href="#overview"><span>◈</span>實驗總覽</a>
-                    <a class="sidebar-link" href="#experiment"><span>⌘</span>實驗設定</a>
-                    <a class="sidebar-link" href="#pipeline"><span>⟶</span>Pipeline 檢視</a>
-                    <a class="sidebar-link" href="#metrics"><span>▥</span>實驗結果</a>
-                    <a class="sidebar-link" href="#comparison"><span>⇄</span>Prompt 比較</a>
-                    <a class="sidebar-link" href="#errors"><span>⚠</span>錯誤案例</a>
-                    <a class="sidebar-link" href="#outline"><span>☷</span>大綱檢視</a>
-                </div>
-                <div class="sidebar-group viewer-group">
-                    <div class="sidebar-group-title"><span class="sidebar-group-icon">▷</span>影片觀看</div>
-                    <button class="sidebar-link viewer-link" id="open-video-viewer" type="button" aria-pressed="false"><span>▶</span>單純看影片</button>
-                </div>
-            </nav>
-            <div class="sidebar-footer"><span class="sidebar-footer-mark">✳</span><span>AutOutline<small>Video understanding lab</small></span></div>
-        </aside>
-        <div class="app-content">
-        <div class="page-shell" id="dashboard-content">
-        <section class="workflow-header" id="overview">
-            <div class="section-kicker">VIDEO UNDERSTANDING · EXPERIMENT WORKFLOW</div>
-            <h1>實驗流程</h1>
-            <p>輸入影片連結、設定偵測方法，並檢視分析結果與生成大綱。</p>
-        </section>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="brand-logo">A</div>
+        <div class="brand-text">
+          <div class="brand-name">AutOutline Lab</div>
+          <div class="brand-caption">Experiment Platform</div>
+        </div>
+      </div>
 
-        <section class="section-block" id="experiment">
+      <div class="sidebar-content">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">影片觀看</div>
+
+          <button class="sidebar-link" data-page="video" title="影片觀看">
+            <span class="sidebar-icon">▶</span>
+            <span class="sidebar-label">影片觀看</span>
+          </button>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">實驗區</div>
+
+          <button class="sidebar-link" data-page="overview" title="實驗總覽">
+            <span class="sidebar-icon">▦</span>
+            <span class="sidebar-label">實驗總覽</span>
+          </button>
+
+          <button
+            class="sidebar-link active"
+            data-page="workflow"
+            title="Workflow 編輯器"
+          >
+            <span class="sidebar-icon">⌘</span>
+            <span class="sidebar-label">Workflow 編輯器</span>
+          </button>
+
+          <button class="sidebar-link" data-page="dataset" title="Dataset 標註">
+            <span class="sidebar-icon">▤</span>
+            <span class="sidebar-label">Dataset 標註</span>
+          </button>
+
+          <button class="sidebar-link" data-page="compare" title="實驗比較">
+            <span class="sidebar-icon">▥</span>
+            <span class="sidebar-label">實驗比較</span>
+          </button>
+
+          <button class="sidebar-link" data-page="history" title="執行紀錄">
+            <span class="sidebar-icon">◷</span>
+            <span class="sidebar-label">執行紀錄</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <span class="sidebar-bottom-icon">●</span>
+        <span class="sidebar-label">Local Workspace</span>
+      </div>
+    </aside>
+
+    <!-- Sidebar 收合按鈕 -->
+    <button
+      class="sidebar-toggle"
+      id="sidebarToggle"
+      type="button"
+      aria-label="收合側邊欄"
+      aria-expanded="true"
+      title="收合側邊欄"
+    >‹</button>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="breadcrumb">
+            AutOutline Lab <span>/</span> <span id="breadcrumbCurrent">Workflow 編輯器</span>
+          </div>
+          <h1 class="page-title" id="pageTitle">Workflow 編輯器</h1>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="workspace-status">
+            <span class="status-dot"></span>
+            <span>本機工作區</span>
+          </div>
+
+          <button class="btn" id="resetPageButton" type="button">
+            重設設定
+          </button>
+        </div>
+      </header>
+
+      <!-- Main page content -->
+      <div class="page-content">
+
+        <!-- ==================== OVERVIEW ==================== -->
+        <section class="page-view hidden" id="page-overview">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">EXPERIMENT WORKSPACE</p>
+              <h2 class="section-title large-title">實驗總覽</h2>
+              <p class="page-description">
+                管理影片資料集、設定分析流程，並追蹤不同實驗版本的評估結果。
+              </p>
+            </div>
+
+            <button class="btn btn-primary" data-go-page="workflow">
+              ＋ 建立實驗設定
+            </button>
+          </div>
+
+          <div class="card-grid overview-stats">
+            <article class="card stat-card">
+              <div class="stat-label">Workflow 模組</div>
+              <div class="stat-value" id="overviewModuleCount">6</div>
+              <div class="stat-footnote">目前流程中的分析階段</div>
+            </article>
+
+            <article class="card stat-card">
+              <div class="stat-label">實驗版本</div>
+              <div class="stat-value" id="overviewExperimentCount">3</div>
+              <div class="stat-footnote">示範資料，尚未連接後端</div>
+            </article>
+
+            <article class="card stat-card">
+              <div class="stat-label">目前 Dataset</div>
+              <div class="stat-value stat-value-text" id="overviewDatasetName">
+                Dataset A
+              </div>
+              <div class="stat-footnote">可於 Workflow 編輯器切換</div>
+            </article>
+          </div>
+
+          <section class="content-section">
             <div class="section-heading">
-                <div><div class="section-kicker">EXPERIMENT SETUP</div><h2>實驗設定</h2><p>調整各階段方法，建立可重現的實驗組合。</p></div>
-                <span class="draft-label"><span></span>設定草稿</span>
+              <div>
+                <h3 class="section-title">最近的實驗</h3>
+                <p class="section-subtitle">查看各版本的主要評估指標。</p>
+              </div>
+              <button class="btn" data-go-page="compare">查看比較</button>
             </div>
-            <div class="config-layout">
-                <form class="config-card" id="experiment-form">
-                    <div class="config-card-heading"><div><span class="config-icon">⌘</span><strong>Run configuration</strong></div><span class="config-version">v1.8</span></div>
-                    <div class="form-grid">
-                        <label class="field video-url-field"><span>影片連結 <b>必填</b></span><input name="videoUrl" type="url" required placeholder="貼上 YouTube、Vimeo 或直接影片檔連結" autocomplete="url"><small>支援 YouTube / Vimeo 分享連結與 MP4 / WebM 等直接影片連結。</small></label>
-                        <label class="field"><span>Dataset</span><select name="dataset"><option>LectureMix (8 videos)</option><option>Course101 (24 videos)</option><option>OpenCourseWare (16 videos)</option></select></label>
-                        <label class="field"><span>Prompt version</span><select name="prompt"><option>Prompt v3 — context-aware</option><option>Prompt v2 — concise title</option><option>Prompt v1 — baseline</option></select></label>
-                        <label class="field"><span>Sampling strategy</span><select name="sampling"><option>Adaptive · 1.0 fps</option><option>Uniform · 0.5 fps</option><option>Uniform · 2.0 fps</option></select></label>
-                        <label class="field"><span>Fusion strategy</span><select name="fusion"><option>Weighted fusion</option><option>Majority vote</option><option>LocateAnything only</option></select></label>
-                    </div>
-                    <div class="choice-group">
-                        <span class="choice-label">Candidate detection</span>
-                        <label class="check-option"><input type="checkbox" name="detector" value="LocateAnything" checked><span class="check-box"></span>LocateAnything <small>視覺語意</small></label>
-                        <label class="check-option"><input type="checkbox" name="detector" value="OCR" checked><span class="check-box"></span>OCR <small>文字變化</small></label>
-                        <label class="check-option"><input type="checkbox" name="detector" value="OpenCV diff"><span class="check-box"></span>OpenCV diff <small>影像差異</small></label>
-                    </div>
-                    <div class="form-bottom">
-                        <label class="field tolerance-field"><span>Evaluation tolerance</span><select name="tolerance"><option value="1">±1 second</option><option value="2" selected>±2 seconds</option><option value="3">±3 seconds</option></select></label>
-                        <div class="form-actions"><button class="button-quiet" type="reset">重設</button><button class="button-primary run-button" type="submit"><span>▶</span> 執行實驗</button></div>
-                    </div>
-                    <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
-                    <div class="run-progress-panel" id="run-progress-panel" hidden>
-                        <div class="run-progress-copy"><span id="run-progress-label">準備影片分析…</span><strong id="run-progress-percent">0%</strong></div>
-                        <div class="experiment-progress"><span id="experiment-progress-fill"></span></div>
-                    </div>
-                </form>
-                <aside class="method-card">
-                    <div class="method-heading"><div><div class="section-kicker">METHOD STACK</div><h3>階段設定</h3></div><span class="stack-tag">可配置</span></div>
-                    <div class="method-row"><span class="method-step">01</span><div><strong>Feature extraction</strong><small>Title · Page · OCR text</small></div><span class="method-status">●</span></div>
-                    <div class="method-row"><span class="method-step">02</span><div><strong>Signal alignment</strong><small>Temporal window · ±2s</small></div><span class="method-status">●</span></div>
-                    <div class="method-row"><span class="method-step">03</span><div><strong>Segmentation</strong><small>Transition-based</small></div><span class="method-status">●</span></div>
-                    <div class="method-note">各階段設定可獨立切換，方便定位模型表現差異。</div>
-                </aside>
-            </div>
-        </section>
 
-        <section class="section-block" id="pipeline">
-            <div class="section-heading compact-heading">
-                <div><div class="section-kicker">FROM VIDEO TO OUTLINE</div><h2>Pipeline 檢視</h2></div>
-                <span class="pipeline-run">RUN · EXP-024</span>
-            </div>
-            <div class="pipeline-card">
-                <div class="pipeline-track">
-                    <article class="pipeline-step"><span class="step-number">01</span><span class="step-icon">▣</span><strong>Video input</strong><small>MP4 · 42:18</small></article>
-                    <span class="pipeline-arrow">→</span>
-                    <article class="pipeline-step"><span class="step-number">02</span><span class="step-icon">▦</span><strong>Frame sampling</strong><small>Adaptive · 1 fps</small></article>
-                    <span class="pipeline-arrow">→</span>
-                    <article class="pipeline-step"><span class="step-number">03</span><span class="step-icon">⌕</span><strong>Candidate detection</strong><small>LocateAnything + OCR</small></article>
-                    <span class="pipeline-arrow">→</span>
-                    <article class="pipeline-step"><span class="step-number">04</span><span class="step-icon">◫</span><strong>Feature extraction</strong><small>Title · Page · Text</small></article>
-                    <span class="pipeline-arrow">→</span>
-                    <article class="pipeline-step"><span class="step-number">05</span><span class="step-icon">⟷</span><strong>Fusion & alignment</strong><small>Weighted · ±2s</small></article>
-                    <span class="pipeline-arrow">→</span>
-                    <article class="pipeline-step"><span class="step-number">06</span><span class="step-icon">⌑</span><strong>Segmentation</strong><small>Transition-based</small></article>
-                    <span class="pipeline-arrow">→</span>
-                    <article class="pipeline-step"><span class="step-number">07</span><span class="step-icon">☷</span><strong>Outline generation</strong><small>Prompt v3</small></article>
-                </div>
-                <div class="signal-legend"><span><i class="legend-dot dot-blue"></i>視覺語意訊號</span><span><i class="legend-dot dot-teal"></i>OCR / page 訊號</span><span><i class="legend-dot dot-orange"></i>轉場候選</span></div>
-            </div>
-        </section>
-
-        <section class="section-block" id="metrics">
-            <div class="section-heading compact-heading">
-                <div><div class="section-kicker">EVALUATION · LECTUREMIX</div><h2>實驗結果</h2></div>
-                <label class="select-inline"><span>容差</span><select id="metric-tolerance" aria-label="切換評估容差"><option value="1">±1s</option><option value="2" selected>±2s</option><option value="3">±3s</option></select></label>
-            </div>
-            <div class="metrics-grid">
-                <article class="metric-card"><div class="metric-top"><span>Precision</span><span class="metric-icon">P</span></div><div class="metric-value" data-metric="precision">0.89</div><div class="metric-foot"><span class="metric-track"><i style="width:89%"></i></span><span>↑ 0.04</span></div></article>
-                <article class="metric-card"><div class="metric-top"><span>Recall</span><span class="metric-icon">R</span></div><div class="metric-value" data-metric="recall">0.94</div><div class="metric-foot"><span class="metric-track"><i style="width:94%"></i></span><span>↑ 0.02</span></div></article>
-                <article class="metric-card metric-highlight"><div class="metric-top"><span>F1-score</span><span class="best-tag">BEST</span></div><div class="metric-value" data-metric="f1">0.91</div><div class="metric-foot"><span class="metric-track"><i style="width:91%"></i></span><span>↑ 0.03</span></div></article>
-                <article class="metric-card"><div class="metric-top"><span>TP / FP / FN</span><span class="metric-icon">Σ</span></div><div class="metric-value compact-value" data-metric="counts">186 <small>/ 23 / 12</small></div><div class="metric-foot"><span>偵測正確 / 誤報 / 漏報</span></div></article>
-                <article class="metric-card"><div class="metric-top"><span>平均處理時間</span><span class="metric-icon">◷</span></div><div class="metric-value">2.4 <small>min</small></div><div class="metric-foot"><span>每部影片 · 8 部影片</span></div></article>
-            </div>
-        </section>
-
-        <section class="section-block" id="comparison">
-            <div class="section-heading">
-                <div><div class="section-kicker">PROMPT & METHOD STUDY</div><h2>Prompt / 方法比較</h2><p>同一資料集下比較不同設定，最佳 F1 以綠色標記。</p></div>
-                <label class="table-filter"><span>⌕</span><input id="comparison-filter" type="search" placeholder="搜尋實驗或方法" aria-label="搜尋比較實驗"></label>
-            </div>
             <div class="table-wrap">
-                <table class="comparison-table">
-                    <thead><tr><th>實驗名稱</th><th>Dataset</th><th>Prompt</th><th>Detector 組合</th><th>Precision</th><th>Recall</th><th>F1</th><th>時間</th><th>備註</th></tr></thead>
-                    <tbody id="comparison-rows">
-                        <tr class="best-row" data-search="exp-024 lectur emix v3 locateanything ocr weighted 最佳"><td><span class="experiment-name">EXP-024</span><span class="row-sub">Weighted fusion</span></td><td>LectureMix</td><td>v3 · Context</td><td><span class="method-chip">LA</span><span class="method-chip chip-teal">OCR</span></td><td>0.89</td><td>0.94</td><td><strong class="f1-best">0.91 <span>BEST</span></strong></td><td>2.4 min</td><td><span class="note-good">最佳結果</span></td></tr>
-                        <tr data-search="exp-021 lectur emix v2 locateanything diff baseline"><td><span class="experiment-name">EXP-021</span><span class="row-sub">Transition baseline</span></td><td>LectureMix</td><td>v2 · Concise</td><td><span class="method-chip">LA</span><span class="method-chip chip-orange">Diff</span></td><td>0.86</td><td>0.88</td><td>0.87</td><td>2.1 min</td><td><span class="note-neutral">基準組</span></td></tr>
-                        <tr class="regression-row" data-search="exp-018 lectur emix v1 locateanything ocr 退步"><td><span class="experiment-name">EXP-018</span><span class="row-sub">OCR + title prompt</span></td><td>LectureMix</td><td>v1 · Baseline</td><td><span class="method-chip">LA</span><span class="method-chip chip-teal">OCR</span></td><td>0.84</td><td>0.79</td><td>0.81</td><td>2.7 min</td><td><span class="note-warn">Recall 退步</span></td></tr>
-                        <tr data-search="exp-015 course101 v3 locateanything ocr diff fusion"><td><span class="experiment-name">EXP-015</span><span class="row-sub">Multi-signal fusion</span></td><td>Course101</td><td>v3 · Context</td><td><span class="method-chip">LA</span><span class="method-chip chip-teal">OCR</span><span class="method-chip chip-orange">Diff</span></td><td>0.88</td><td>0.90</td><td>0.89</td><td>2.8 min</td><td><span class="note-neutral">跨資料集</span></td></tr>
-                    </tbody>
-                </table>
-                <div class="empty-state" id="comparison-empty" hidden>找不到符合的實驗資料。</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>實驗名稱</th>
+                    <th>Dataset</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1 Score</th>
+                    <th>狀態</th>
+                  </tr>
+                </thead>
+                <tbody id="overviewExperimentTable"></tbody>
+              </table>
             </div>
-            <div class="table-caption"><span>顯示 4 組示範實驗</span><span>指標以 transition matching 計算</span></div>
-        </section>
+          </section>
 
-        <section class="section-block" id="errors">
+          <section class="content-section">
             <div class="section-heading">
-                <div><div class="section-kicker">ERROR ANALYSIS · 35 CASES</div><h2>錯誤案例分析</h2><p>檢視訊號判定差異，找出轉場誤報與漏報的可能原因。</p></div>
-                <div class="error-legend"><span class="error-type error-fp">FP · 誤報</span><span class="error-type error-fn">FN · 漏報</span></div>
+              <div>
+                <h3 class="section-title">快速入口</h3>
+                <p class="section-subtitle">直接前往需要操作的功能。</p>
+              </div>
             </div>
-            <div class="error-layout">
-                <div class="case-list" role="listbox" aria-label="錯誤案例">
-                    <button class="case-item selected" type="button" role="option" aria-selected="true" data-case="fp"><span class="error-type error-fp">FP</span><span class="case-copy"><strong>投影片動畫觸發轉場</strong><small>Lecture 04 · 12:34</small></span><span class="case-chevron">›</span></button>
-                    <button class="case-item" type="button" role="option" aria-selected="false" data-case="fn"><span class="error-type error-fn">FN</span><span class="case-copy"><strong>快速切頁未被取樣</strong><small>Lecture 07 · 08:19</small></span><span class="case-chevron">›</span></button>
-                    <button class="case-item" type="button" role="option" aria-selected="false" data-case="fp2"><span class="error-type error-fp">FP</span><span class="case-copy"><strong>游標遮擋造成 OCR 漂移</strong><small>Lecture 02 · 31:06</small></span><span class="case-chevron">›</span></button>
-                    <div class="case-list-foot">顯示 3 / 35 個案例 <span>檢視全部 →</span></div>
-                </div>
-                <article class="case-detail" id="case-detail">
-                    <div class="detail-header"><div><span class="error-type error-fp" data-detail-type>FALSE POSITIVE</span><h3 data-detail-title>投影片動畫觸發轉場</h3></div><span class="detail-time" data-detail-time>12:34.2</span></div>
-                    <div class="frame-placeholder"><span class="frame-label">FRAME PREVIEW · 12:34.2</span><div class="mock-slide"><span>03</span><strong>Gradient Descent<br>Optimization</strong><i></i><i></i></div><div class="frame-caption">圖片預覽示意 · 前後影格比對預留區</div></div>
-                    <div class="signal-grid">
-                        <div class="signal-item"><span>LocateAnything</span><strong data-detail-la>相似度 0.82 · 有變化</strong></div>
-                        <div class="signal-item"><span>OCR / Page</span><strong data-detail-ocr>文字相同 · Page 12</strong></div>
-                        <div class="signal-item"><span>System decision</span><strong class="signal-fail" data-detail-decision>判定為新投影片</strong></div>
-                        <div class="signal-item"><span>Ground truth</span><strong data-detail-truth>同頁動畫 · 非轉場</strong></div>
-                    </div>
-                    <div class="reason-box"><span>可能原因</span><p data-detail-reason>動畫逐步顯示圖表造成視覺差異，但 title 與 page number 未變；融合權重偏重影像語意訊號。</p></div>
-                </article>
+
+            <div class="card-grid quick-links">
+              <button class="card quick-link-card" data-go-page="workflow">
+                <span class="quick-link-icon">⌘</span>
+                <span class="quick-link-title">Workflow 編輯器</span>
+                <span class="quick-link-description">
+                  調整模組順序、啟用狀態與分析參數。
+                </span>
+              </button>
+
+              <button class="card quick-link-card" data-go-page="dataset">
+                <span class="quick-link-icon">▤</span>
+                <span class="quick-link-title">Dataset 標註</span>
+                <span class="quick-link-description">
+                  選擇影片並記錄正確的投影片切換時間。
+                </span>
+              </button>
+
+              <button class="card quick-link-card" data-go-page="compare">
+                <span class="quick-link-icon">▥</span>
+                <span class="quick-link-title">實驗比較</span>
+                <span class="quick-link-description">
+                  比較不同設定的 Precision、Recall 與 F1。
+                </span>
+              </button>
             </div>
+          </section>
         </section>
 
-        <section class="section-block" id="outline">
-            <div class="section-heading">
-                <div><div class="section-kicker">GENERATED OUTLINE · LECTURE 04</div><h2>大綱檢視與編輯</h2><p>依投影片段落整理時間、標題與摘要；編輯功能為前端示範。</p></div>
-                <button class="button-quiet export-button" type="button" id="export-outline">↓ 匯出大綱</button>
+        <!-- ==================== WORKFLOW ==================== -->
+        <section class="page-view" id="page-workflow">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">PIPELINE CONFIGURATION</p>
+              <h2 class="section-title large-title">Workflow 編輯器</h2>
+              <p class="page-description">
+                將影片分析流程拆成獨立模組，逐一調整參數，再比較不同設定的實驗結果。
+              </p>
             </div>
-            <div class="outline-toolbar"><span><strong>Lecture 04 · Neural Networks</strong><small>42:18 · 6 個段落</small></span><span class="outline-status"><i></i> 已由 Prompt v3 生成</span></div>
-            <div class="outline-list">
-                <article class="outline-segment"><span class="segment-index">01</span><div class="segment-time">00:00 <span>—</span> 05:42</div><div class="segment-content"><h3>神經網路與學習目標</h3><p>介紹神經網路的基本概念，說明本章將從線性模型延伸至多層感知器。</p><div class="key-terms"><span>Neural Network</span><span>Learning objective</span></div></div><button class="edit-button" type="button" aria-label="編輯神經網路與學習目標">編輯</button></article>
-                <article class="outline-segment"><span class="segment-index">02</span><div class="segment-time">05:42 <span>—</span> 12:36</div><div class="segment-content"><h3>梯度下降與參數更新</h3><p>以損失函數梯度更新權重，並透過圖示解釋 learning rate 對收斂速度的影響。</p><div class="key-terms"><span>Gradient descent</span><span>Learning rate</span><span>Loss</span></div></div><button class="edit-button" type="button" aria-label="編輯梯度下降與參數更新">編輯</button></article>
-                <article class="outline-segment"><span class="segment-index">03</span><div class="segment-time">12:36 <span>—</span> 19:08</div><div class="segment-content"><h3>反向傳播演算法</h3><p>從輸出層往回計算梯度，將誤差訊號傳遞到各層以更新模型參數。</p><div class="key-terms"><span>Backpropagation</span><span>Chain rule</span></div></div><button class="edit-button" type="button" aria-label="編輯反向傳播演算法">編輯</button></article>
-                <button class="show-more" type="button" id="show-more">＋ 顯示其餘 3 個段落</button>
-                <div class="more-segments" id="more-segments" hidden>
-                    <article class="outline-segment"><span class="segment-index">04</span><div class="segment-time">19:08 <span>—</span> 26:15</div><div class="segment-content"><h3>啟動函數與非線性</h3><p>比較常見啟動函數，理解非線性轉換如何提升模型表達能力。</p><div class="key-terms"><span>Activation function</span><span>ReLU</span></div></div><button class="edit-button" type="button" aria-label="編輯啟動函數與非線性">編輯</button></article>
-                    <article class="outline-segment"><span class="segment-index">05</span><div class="segment-time">26:15 <span>—</span> 34:50</div><div class="segment-content"><h3>過度擬合與正規化</h3><p>說明模型過度擬合的現象，並介紹 Dropout 與 L2 正規化。</p><div class="key-terms"><span>Overfitting</span><span>Regularization</span></div></div><button class="edit-button" type="button" aria-label="編輯過度擬合與正規化">編輯</button></article>
-                    <article class="outline-segment"><span class="segment-index">06</span><div class="segment-time">34:50 <span>—</span> 42:18</div><div class="segment-content"><h3>重點回顧與練習</h3><p>回顧本章關鍵概念，透過練習題檢查對模型訓練流程的理解。</p><div class="key-terms"><span>Review</span><span>Practice</span></div></div><button class="edit-button" type="button" aria-label="編輯重點回顧與練習">編輯</button></article>
-                </div>
-            </div>
-            <p class="outline-message" id="outline-message" role="status" aria-live="polite"></p>
-        </section>
+          </div>
 
-        <section class="future-card" aria-label="未來擴充方向">
-            <div class="future-heading"><span class="future-icon">✳</span><div><div class="section-kicker">ROOM TO GROW</div><h2>下一步，讓分析更完整</h2></div></div>
-            <div class="future-features"><span><i>↗</i> Temporal consistency</span><span><i>▤</i> 多版本摘要</span><span><i>⌕</i> 關鍵詞跳轉</span><span><i>⌁</i> Title / page alignment</span><span><i>✎</i> 人工修正紀錄</span></div>
-        </section>
-        <footer class="page-footer"><a class="footer-brand" href="#overview">AutOutline <span>/ LocateAnything</span></a><span>教學影片投影片偵測與大綱生成實驗平台</span><a href="#overview">回到頁首 ↑</a></footer>
-        </div>
-        <section class="video-viewer" id="video-viewer" aria-labelledby="viewer-title" hidden>
-            <div class="viewer-heading">
-                <div><div class="section-kicker">VIDEO LIBRARY · VIDEO & OUTLINE</div><h1 id="viewer-title">影片觀看與生成大綱</h1><p>播放實驗影片並檢視生成結果；也可以單純載入本機影片觀看。</p></div>
-                <label class="button-primary video-select-button"><span>＋</span> 選擇本機影片<input id="video-file-input" type="file" accept="video/*"></label>
+          <div class="toolbar-card card">
+            <div class="toolbar-fields">
+              <div class="form-field toolbar-field">
+                <label for="workflowName">Workflow 名稱</label>
+                <input
+                  class="input"
+                  id="workflowName"
+                  value="LocateAnything Baseline"
+                  placeholder="輸入 Workflow 名稱"
+                >
+              </div>
+
+              <div class="form-field toolbar-field">
+                <label for="datasetSelect">測試 Dataset</label>
+                <select class="select" id="datasetSelect">
+                  <option value="Dataset A">Dataset A</option>
+                  <option value="Dataset B">Dataset B</option>
+                  <option value="Dataset C">Dataset C</option>
+                </select>
+              </div>
+
+              <div class="form-field toolbar-field version-field">
+                <label for="experimentVersion">實驗版本</label>
+                <input
+                  class="input"
+                  id="experimentVersion"
+                  value="v1.0"
+                  placeholder="例如 v1.1"
+                >
+              </div>
             </div>
-            <div class="viewer-layout">
-                <section class="video-player-card" aria-label="影片播放器">
-                    <video id="local-video-player" controls playsinline hidden></video>
-                    <iframe id="embedded-video-player" title="影片播放器" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe>
-                    <div class="video-empty-state" id="video-empty-state">
-                        <span class="empty-play-icon">▶</span>
-                        <strong>尚未選擇影片</strong>
-                        <span>從實驗區貼上影片連結，或選擇本機影片。</span>
-                        <label class="button-quiet empty-select-button">瀏覽影片<input type="file" accept="video/*" class="video-file-proxy"></label>
-                    </div>
-                    <div class="player-caption"><span id="video-file-name">未載入影片</span><span id="video-source-note">本機影片不會上傳</span></div>
-                </section>
-                <aside class="viewer-info-card">
-                    <div class="section-kicker">NOW PLAYING</div>
-                    <h2 id="viewer-file-title">選取影片開始觀看</h2>
-                    <p id="viewer-description">執行實驗後，完成的影片與生成大綱會顯示在這裡。</p>
-                    <div class="viewer-info-divider"></div>
-                    <div class="viewer-info-row"><span>播放模式</span><strong id="viewer-mode-label">一般觀看</strong></div>
-                    <div class="viewer-info-row"><span>檔案來源</span><strong id="viewer-source-label">尚未選擇</strong></div>
-                    <div class="viewer-info-row"><span>資料處理</span><strong class="local-only" id="viewer-processing-label"><i></i>不會上傳影片</strong></div>
-                </aside>
+
+            <div class="toolbar-actions">
+              <span class="badge" id="workflowModuleBadge">6 個模組</span>
+              <button class="btn" id="saveWorkflowButton" type="button">
+                儲存設定
+              </button>
+              <button class="btn btn-primary" id="runExperimentButton" type="button">
+                ▶ 執行實驗
+              </button>
             </div>
-            <section class="generated-outline-panel" id="generated-outline-panel" aria-labelledby="generated-outline-title" hidden>
-                <div class="generated-outline-heading"><div><div class="section-kicker">GENERATED BY EXPERIMENT</div><h2 id="generated-outline-title">影片大綱</h2><p id="generated-outline-meta">實驗完成 · 示範生成結果</p></div><span class="outline-status"><i></i>已完成</span></div>
-                <div class="generated-outline-list" id="generated-outline-list"></div>
+          </div>
+
+          <div class="workflow-layout">
+            <!-- 左側流程圖 -->
+            <section class="workflow-panel">
+              <div class="panel-heading">
+                <div>
+                  <h3 class="section-title">分析流程</h3>
+                  <p class="section-subtitle">
+                    點選任一模組，即可在右側修改參數。
+                  </p>
+                </div>
+
+                <span class="badge badge-neutral">依序執行</span>
+              </div>
+
+              <div class="workflow-canvas">
+                <div class="workflow-list" id="workflowList">
+
+                  <button
+                    class="workflow-module selected"
+                    data-module="input"
+                    type="button"
+                  >
+                    <span class="module-icon">▣</span>
+                    <span class="module-main">
+                      <span class="module-name">影片輸入</span>
+                      <span class="module-description">
+                        讀取影片、基本資訊與資料集來源。
+                      </span>
+                    </span>
+                    <span class="module-status">已啟用</span>
+                  </button>
+
+                  <div class="workflow-connector"></div>
+
+                  <button
+                    class="workflow-module"
+                    data-module="prescan"
+                    type="button"
+                  >
+                    <span class="module-icon">⌕</span>
+                    <span class="module-main">
+                      <span class="module-name">Pre-scan</span>
+                      <span class="module-description">
+                        預先檢查影片與頁碼特徵。
+                      </span>
+                    </span>
+                    <span class="module-status">已啟用</span>
+                  </button>
+
+                  <div class="workflow-connector"></div>
+
+                  <button
+                    class="workflow-module"
+                    data-module="detection"
+                    type="button"
+                  >
+                    <span class="module-icon">▧</span>
+                    <span class="module-main">
+                      <span class="module-name">投影片與標題偵測</span>
+                      <span class="module-description">
+                        使用 LocateAnything 偵測標題與頁碼。
+                      </span>
+                    </span>
+                    <span class="module-status">已啟用</span>
+                  </button>
+
+                  <div class="workflow-connector"></div>
+
+                  <button
+                    class="workflow-module"
+                    data-module="alignment"
+                    type="button"
+                  >
+                    <span class="module-icon">⇄</span>
+                    <span class="module-main">
+                      <span class="module-name">時間對齊</span>
+                      <span class="module-description">
+                        合併候選時間點並處理重複偵測。
+                      </span>
+                    </span>
+                    <span class="module-status">已啟用</span>
+                  </button>
+
+                  <div class="workflow-connector"></div>
+
+                  <button
+                    class="workflow-module"
+                    data-module="transcript"
+                    type="button"
+                  >
+                    <span class="module-icon">≡</span>
+                    <span class="module-main">
+                      <span class="module-name">逐字稿處理</span>
+                      <span class="module-description">
+                        載入或處理語音文字與時間資訊。
+                      </span>
+                    </span>
+                    <span class="module-status">已啟用</span>
+                  </button>
+
+                  <div class="workflow-connector"></div>
+
+                  <button
+                    class="workflow-module"
+                    data-module="outline"
+                    type="button"
+                  >
+                    <span class="module-icon">☷</span>
+                    <span class="module-main">
+                      <span class="module-name">Outline 生成與評估</span>
+                      <span class="module-description">
+                        輸出大綱並與 Ground Truth 比較。
+                      </span>
+                    </span>
+                    <span class="module-status">已啟用</span>
+                  </button>
+
+                </div>
+
+                <div class="canvas-footer">
+                  <span class="status-dot"></span>
+                  <span>流程設定會影響後續實驗配置。</span>
+                </div>
+              </div>
             </section>
+
+            <!-- 右側模組設定 -->
+            <aside class="inspector">
+              <div class="card inspector-card">
+                <div class="inspector-header">
+                  <div>
+                    <p class="eyebrow">MODULE SETTINGS</p>
+                    <h3 class="inspector-title" id="inspectorTitle">
+                      影片輸入
+                    </h3>
+                    <p class="inspector-description" id="inspectorDescription">
+                      設定影片來源與讀取方式。
+                    </p>
+                  </div>
+                  <span class="module-number" id="moduleNumber">01</span>
+                </div>
+
+                <div class="inspector-enable-row">
+                  <div>
+                    <div class="field-title">啟用此模組</div>
+                    <div class="field-hint">關閉後，此模組將不參與流程。</div>
+                  </div>
+                  <button
+                    class="toggle on"
+                    id="moduleEnabledToggle"
+                    type="button"
+                    aria-label="切換模組啟用狀態"
+                    aria-pressed="true"
+                  ></button>
+                </div>
+
+                <div class="inspector-form" id="inspectorForm"></div>
+
+                <div class="inspector-footer">
+                  <button class="btn btn-block" id="resetModuleButton" type="button">
+                    還原模組預設值
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <section class="content-section">
+            <div class="section-heading">
+              <div>
+                <h3 class="section-title">最近的實驗結果</h3>
+                <p class="section-subtitle">
+                  以相同 Dataset 比較不同 Workflow 版本。
+                </p>
+              </div>
+              <button class="btn" data-go-page="compare">前往實驗比較</button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>實驗名稱</th>
+                    <th>Dataset</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1 Score</th>
+                    <th>狀態</th>
+                  </tr>
+                </thead>
+                <tbody id="workflowExperimentTable"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
-        </div>
+
+        <!-- ==================== DATASET ==================== -->
+        <section class="page-view hidden" id="page-dataset">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">DATASET & GROUND TRUTH</p>
+              <h2 class="section-title large-title">Dataset 標註</h2>
+              <p class="page-description">
+                選擇播放清單與影片，建立正確的投影片切換時間點，作為實驗評估的 Ground Truth。
+              </p>
+            </div>
+          </div>
+
+          <div class="card dataset-toolbar">
+            <div class="form-field">
+              <label for="annotationDatasetSelect">播放清單 / Dataset</label>
+              <select class="select" id="annotationDatasetSelect">
+                <option value="Dataset A">Dataset A</option>
+                <option value="Dataset B">Dataset B</option>
+                <option value="Dataset C">Dataset C</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="videoSearch">搜尋影片</label>
+              <input
+                class="input"
+                id="videoSearch"
+                placeholder="輸入影片名稱..."
+              >
+            </div>
+          </div>
+
+          <div class="annotation-layout">
+            <section class="card video-list-panel">
+              <div class="section-heading">
+                <div>
+                  <h3 class="section-title">影片清單</h3>
+                  <p class="section-subtitle" id="videoCount">共 5 部影片</p>
+                </div>
+              </div>
+
+              <div class="video-list" id="videoList"></div>
+            </section>
+
+            <section class="card annotation-panel">
+              <div class="annotation-video-header">
+                <div>
+                  <p class="eyebrow">GROUND TRUTH EDITOR</p>
+                  <h3 class="section-title" id="selectedVideoTitle">
+                    第一部教學影片
+                  </h3>
+                  <p class="section-subtitle" id="selectedVideoMeta">
+                    Dataset A · 影片時間點標註
+                  </p>
+                </div>
+                <span class="badge badge-warning" id="annotationStatus">
+                  尚未儲存
+                </span>
+              </div>
+
+              <div class="video-preview">
+                <div class="preview-icon">▶</div>
+                <h4>影片預覽區</h4>
+                <p>
+                  此處預留影片播放器。後續可接入影片 URL 或實體影片路徑。
+                </p>
+              </div>
+
+              <div class="timestamp-heading">
+                <div>
+                  <h4 class="section-title">投影片切換時間點</h4>
+                  <p class="section-subtitle">
+                    請輸入切換發生的時間，格式為 HH:MM:SS。
+                  </p>
+                </div>
+
+                <button class="btn btn-primary" id="addTimestampButton" type="button">
+                  ＋ 新增時間點
+                </button>
+              </div>
+
+              <div class="timestamp-list" id="timestampList"></div>
+
+              <div class="annotation-footer">
+                <div class="annotation-summary" id="timestampSummary">
+                  共 0 個 Ground Truth 時間點
+                </div>
+                <button class="btn btn-primary" id="saveAnnotationButton" type="button">
+                  儲存標註
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ==================== COMPARE ==================== -->
+        <section class="page-view hidden" id="page-compare">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">EXPERIMENT EVALUATION</p>
+              <h2 class="section-title large-title">實驗比較</h2>
+              <p class="page-description">
+                以相同的 Dataset 比較不同參數組合，觀察 Precision、Recall、F1 與執行時間的差異。
+              </p>
+            </div>
+          </div>
+
+          <div class="card compare-toolbar">
+            <div class="form-field">
+              <label for="compareDatasetSelect">比較 Dataset</label>
+              <select class="select" id="compareDatasetSelect">
+                <option value="all">全部 Dataset</option>
+                <option value="Dataset A">Dataset A</option>
+                <option value="Dataset B">Dataset B</option>
+                <option value="Dataset C">Dataset C</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="compareMetricSelect">主要指標</label>
+              <select class="select" id="compareMetricSelect">
+                <option value="f1">F1 Score</option>
+                <option value="precision">Precision</option>
+                <option value="recall">Recall</option>
+              </select>
+            </div>
+
+            <button class="btn" id="selectAllExperimentsButton" type="button">
+              全選 / 取消全選
+            </button>
+          </div>
+
+          <section class="card comparison-chart-card">
+            <div class="section-heading">
+              <div>
+                <h3 class="section-title">指標比較</h3>
+                <p class="section-subtitle">
+                  圖表使用目前篩選條件與選取的實驗版本。
+                </p>
+              </div>
+              <span class="badge" id="comparisonMetricLabel">F1 Score</span>
+            </div>
+
+            <div class="comparison-chart" id="comparisonChart"></div>
+          </section>
+
+          <section class="content-section">
+            <div class="section-heading">
+              <div>
+                <h3 class="section-title">實驗結果表</h3>
+                <p class="section-subtitle">
+                  可勾選要納入圖表的版本。
+                </p>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>比較</th>
+                    <th>實驗名稱</th>
+                    <th>Dataset</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1 Score</th>
+                    <th>耗時</th>
+                    <th>狀態</th>
+                  </tr>
+                </thead>
+                <tbody id="comparisonTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <!-- ==================== HISTORY ==================== -->
+        <section class="page-view hidden" id="page-history">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">RUN HISTORY</p>
+              <h2 class="section-title large-title">執行紀錄</h2>
+              <p class="page-description">
+                查看實驗執行時間、使用的設定版本與執行狀態。
+              </p>
+            </div>
+          </div>
+
+          <div class="card history-summary">
+            <div>
+              <div class="stat-label">紀錄總數</div>
+              <div class="stat-value" id="historyCount">3</div>
+            </div>
+            <div>
+              <div class="stat-label">成功</div>
+              <div class="stat-value" id="historySuccessCount">3</div>
+            </div>
+            <div>
+              <div class="stat-label">最近執行</div>
+              <div class="history-last-run" id="historyLastRun">尚無執行紀錄</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>執行時間</th>
+                  <th>實驗名稱</th>
+                  <th>Dataset</th>
+                  <th>版本</th>
+                  <th>耗時</th>
+                  <th>狀態</th>
+                </tr>
+              </thead>
+              <tbody id="historyTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ==================== VIDEO PLACEHOLDER ==================== -->
+        <section class="page-view hidden" id="page-video">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow">VIDEO VIEWER</p>
+              <h2 class="section-title large-title">影片觀看</h2>
+              <p class="page-description">
+                預留影片播放與分析結果檢視功能。
+              </p>
+            </div>
+          </div>
+
+          <div class="placeholder">
+            <div class="placeholder-icon">▶</div>
+            <h2>影片觀看功能尚未開發</h2>
+            <p>
+              此區將用於播放教學影片、檢視投影片切換時間點，
+              並同步顯示 LocateAnything 偵測結果與 Outline。
+            </p>
+          </div>
+        </section>
+
+      </div>
     </main>
+  </div>
+
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
