@@ -1013,16 +1013,11 @@ function markAnnotationDirty() {
 
 function renderVideoList() {
   const videos = getCurrentVideoList();
-  const search = $("#videoSearch").value.trim().toLowerCase();
-
-  const filtered = videos.filter((video) =>
-    video.title.toLowerCase().includes(search)
-  );
 
   $("#videoCount").textContent = `共 ${videos.length} 部影片`;
 
-  $("#videoList").innerHTML = filtered.length
-    ? filtered.map((video) => `
+  $("#videoList").innerHTML = videos.length
+    ? videos.map((video) => `
       <button
         type="button"
         class="video-item ${video.id === selectedVideoId ? "active" : ""}"
@@ -1052,7 +1047,14 @@ function renderSelectedVideo() {
 
   if (!video) {
     $("#selectedVideoTitle").textContent = "沒有可用影片";
-    $("#selectedVideoMeta").textContent = "請選擇其他 Dataset。";
+    $("#selectedVideoMeta").textContent = "請先在此 Dataset 新增 YouTube 影片。";
+    $("#annotationStatus").textContent = "尚未儲存";
+    $("#annotationStatus").className = "badge badge-warning";
+    $("#page-dataset .video-preview").innerHTML = `
+      <div class="preview-icon">▶</div>
+      <h4>尚未新增影片</h4>
+      <p>請在上方貼上 YouTube 影片網址並新增至目前 Dataset。</p>
+    `;
     $("#timestampList").innerHTML = "";
     $("#timestampSummary").textContent = "共 0 個 Ground Truth 時間點";
     return;
@@ -1061,6 +1063,25 @@ function renderSelectedVideo() {
   $("#selectedVideoTitle").textContent = video.title;
   $("#selectedVideoMeta").textContent =
     `${$("#annotationDatasetSelect").value} · 影片長度 ${video.duration}`;
+  if (video.youtubeId) {
+    $("#page-dataset .video-preview").innerHTML = `
+      <div class="preview-icon">▶</div>
+      <h4>YouTube 影片已加入 Dataset</h4>
+      <p>
+        <a href="${escapeHTML(video.url)}" target="_blank" rel="noopener noreferrer">
+          在 YouTube 開啟影片
+        </a>
+      </p>
+    `;
+  } else {
+    $("#page-dataset .video-preview").innerHTML = `
+      <div class="preview-icon">▶</div>
+      <h4>影片預覽區</h4>
+      <p>
+        此處預留影片播放器。後續可接入影片 URL 或實體影片路徑。
+      </p>
+    `;
+  }
 
   $("#annotationStatus").textContent = annotationDirty
     ? "尚未儲存"
@@ -1155,14 +1176,120 @@ function sortTimestamps(timestamps) {
   timestamps.sort((a, b) => timestampToSeconds(a) - timestampToSeconds(b));
 }
 
+function getYouTubeVideoId(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  const allowedHosts = new Set([
+    "youtube.com",
+    "www.youtube.com",
+    "m.youtube.com",
+    "youtu.be",
+    "www.youtu.be"
+  ]);
+  if (!["http:", "https:"].includes(url.protocol) ||
+      !allowedHosts.has(url.hostname.toLowerCase())) {
+    return null;
+  }
+
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const videoId = url.hostname.toLowerCase().endsWith("youtu.be")
+    ? pathParts[0]
+    : url.pathname === "/watch"
+      ? url.searchParams.get("v")
+      : ["embed", "shorts", "live"].includes(pathParts[0])
+        ? pathParts[1]
+        : null;
+
+  return typeof videoId === "string" && /^[\w-]{11}$/.test(videoId)
+    ? videoId
+    : null;
+}
+
+function renderDatasetOptions(selectedDataset) {
+  const select = $("#annotationDatasetSelect");
+  select.innerHTML = Object.keys(videoData).map((datasetName) => `
+    <option value="${escapeHTML(datasetName)}"
+      ${datasetName === selectedDataset ? "selected" : ""}>
+      ${escapeHTML(datasetName)}
+    </option>
+  `).join("");
+}
+
+$("#createDatasetButton").addEventListener("click", () => {
+  const datasetName = window.prompt("請輸入新的 Dataset 名稱：")?.trim();
+  if (datasetName === undefined) return;
+  if (!datasetName || datasetName.length > 60) {
+    showToast("請輸入 1 至 60 個字元的 Dataset 名稱。");
+    return;
+  }
+
+  if (Object.keys(videoData).some(
+    (name) => name.toLowerCase() === datasetName.toLowerCase()
+  )) {
+    showToast("這個 Dataset 名稱已存在，請改用其他名稱。");
+    return;
+  }
+
+  if (["__proto__", "constructor", "prototype"].includes(datasetName.toLowerCase())) {
+    showToast("這個名稱無法使用，請改用其他 Dataset 名稱。");
+    return;
+  }
+
+  videoData[datasetName] = [];
+  renderDatasetOptions(datasetName);
+  selectedVideoId = null;
+  annotationDirty = false;
+  renderVideoList();
+  renderSelectedVideo();
+  showToast(`已建立 Dataset「${datasetName}」。`);
+});
+
+$("#addVideoButton").addEventListener("click", () => {
+  const youtubeUrl = $("#newVideoUrl").value.trim();
+  if (!youtubeUrl) {
+    showToast("請先輸入 YouTube 影片網址。");
+    return;
+  }
+  const youtubeId = getYouTubeVideoId(youtubeUrl);
+  if (!youtubeId) {
+    showToast("請輸入有效的 YouTube 影片網址（youtube.com 或 youtu.be）。");
+    return;
+  }
+
+  const currentVideos = getCurrentVideoList();
+  if (currentVideos.some((video) => video.youtubeId === youtubeId)) {
+    showToast("這部影片已存在於目前的 Dataset。");
+    return;
+  }
+
+  const video = {
+    id: `youtube-${youtubeId}`,
+    title: `YouTube 影片 ${youtubeId}`,
+    youtubeId,
+    url: `https://www.youtube.com/watch?v=${youtubeId}`,
+    duration: "未知",
+    timestamps: []
+  };
+  currentVideos.push(video);
+  selectedVideoId = video.id;
+  annotationDirty = false;
+  $("#newVideoUrl").value = "";
+  renderVideoList();
+  renderSelectedVideo();
+  showToast("已將 YouTube 影片新增至目前的 Dataset。");
+});
+
 $("#annotationDatasetSelect").addEventListener("change", () => {
   selectedVideoId = getCurrentVideoList()[0]?.id || null;
   annotationDirty = false;
   renderVideoList();
   renderSelectedVideo();
 });
-
-$("#videoSearch").addEventListener("input", renderVideoList);
 
 $("#addTimestampButton").addEventListener("click", () => {
   const video = getSelectedVideo();

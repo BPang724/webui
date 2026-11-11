@@ -1023,29 +1023,53 @@ body.sidebar-collapsed .sidebar-toggle {
 
 /* Dataset */
 
+#page-dataset .page-intro {
+  margin-bottom: 24px;
+}
+
+.dataset-create-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+
+.dataset-create-panel .section-title {
+  margin: 0;
+}
+
+.dataset-create-panel .section-subtitle {
+  margin: 5px 0 0;
+}
+
 .dataset-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(250px, 1.3fr);
-  gap: 24px;
-  margin-bottom: 28px;
+  grid-template-columns: minmax(220px, 1fr) minmax(250px, 1.3fr) auto;
+  align-items: end;
+  gap: 18px;
+  padding: 22px 24px;
+  margin-bottom: 24px;
 }
 
 .annotation-layout {
   display: grid;
   grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
   align-items: start;
-  gap: 26px;
+  gap: 22px;
 }
 
 .video-list-panel,
 .annotation-panel {
   min-width: 0;
+  padding: 24px;
 }
 
 .video-list {
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 10px;
 }
 
 .video-item {
@@ -1087,8 +1111,8 @@ body.sidebar-collapsed .sidebar-toggle {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 23px;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .video-preview {
@@ -1132,18 +1156,26 @@ body.sidebar-collapsed .sidebar-toggle {
   line-height: 1.8;
 }
 
+.video-preview a {
+  color: #dce5ff;
+}
+
+.video-preview a:hover {
+  color: white;
+}
+
 .timestamp-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  margin: 30px 0 20px;
+  gap: 16px;
+  margin: 26px 0 16px;
 }
 
 .timestamp-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .timestamp-row {
@@ -1178,9 +1210,9 @@ body.sidebar-collapsed .sidebar-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 15px;
-  padding-top: 22px;
-  margin-top: 24px;
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 20px;
   border-top: 1px solid var(--border);
 }
 
@@ -1486,6 +1518,23 @@ body.sidebar-collapsed .sidebar-toggle {
 
   .page-description {
     font-size: 14px;
+  }
+
+  .dataset-create-panel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .dataset-toolbar {
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .video-list-panel,
+  .annotation-panel {
+    padding: 19px;
   }
 
   .card {

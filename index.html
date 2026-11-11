@@ -486,6 +486,16 @@
             </div>
           </div>
 
+          <section class="card dataset-create-panel">
+            <div>
+              <h3 class="section-title">新增 Dataset</h3>
+              <p class="section-subtitle">先建立播放清單，再從下方選擇清單新增影片。</p>
+            </div>
+            <button class="btn btn-primary" id="createDatasetButton" type="button">
+              ＋ 新增 Dataset
+            </button>
+          </section>
+
           <div class="card dataset-toolbar">
             <div class="form-field">
               <label for="annotationDatasetSelect">播放清單 / Dataset</label>
@@ -497,13 +507,17 @@
             </div>
 
             <div class="form-field">
-              <label for="videoSearch">搜尋影片</label>
+              <label for="newVideoUrl">新增 YouTube 影片</label>
               <input
                 class="input"
-                id="videoSearch"
-                placeholder="輸入影片名稱..."
+                id="newVideoUrl"
+                type="url"
+                placeholder="貼上 YouTube 影片 URL..."
               >
             </div>
+            <button class="btn btn-primary" id="addVideoButton" type="button">
+              新增影片
+            </button>
           </div>
 
           <div class="annotation-layout">
