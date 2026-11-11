@@ -30,13 +30,13 @@
         <div class="sidebar-section">
           <div class="sidebar-section-title">影片觀看</div>
 
-          <button class="sidebar-link" data-page="video" title="影片觀看">
+          <button class="sidebar-link active" data-page="video" title="影片觀看">
             <span class="sidebar-icon">▶</span>
             <span class="sidebar-label">影片觀看</span>
           </button>
         </div>
 
-        <div class="sidebar-section">
+        <div class="sidebar-section hidden" data-experiment-access>
           <div class="sidebar-section-title">實驗區</div>
 
           <button class="sidebar-link" data-page="overview" title="實驗總覽">
@@ -45,7 +45,7 @@
           </button>
 
           <button
-            class="sidebar-link active"
+            class="sidebar-link"
             data-page="workflow"
             title="Workflow 編輯器"
           >
@@ -93,9 +93,9 @@
       <header class="topbar">
         <div class="topbar-left">
           <div class="breadcrumb">
-            AutOutline Lab <span>/</span> <span id="breadcrumbCurrent">Workflow 編輯器</span>
+            AutOutline Lab <span>/</span> <span id="breadcrumbCurrent">影片觀看</span>
           </div>
-          <h1 class="page-title" id="pageTitle">Workflow 編輯器</h1>
+          <h1 class="page-title" id="pageTitle">影片觀看</h1>
         </div>
 
         <div class="topbar-actions">
@@ -114,7 +114,7 @@
             <button class="btn" id="authLogout" type="button">登出</button>
           </div>
 
-          <button class="btn" id="resetPageButton" type="button">
+          <button class="btn hidden" id="resetPageButton" data-experiment-access type="button">
             重設設定
           </button>
         </div>
@@ -124,7 +124,7 @@
       <div class="page-content">
 
         <!-- ==================== OVERVIEW ==================== -->
-        <section class="page-view hidden" id="page-overview">
+        <section class="page-view hidden" id="page-overview" data-experiment-page>
           <div class="page-intro">
             <div>
               <p class="eyebrow">EXPERIMENT WORKSPACE</p>
@@ -224,7 +224,7 @@
         </section>
 
         <!-- ==================== WORKFLOW ==================== -->
-        <section class="page-view" id="page-workflow">
+        <section class="page-view hidden" id="page-workflow" data-experiment-page>
           <div class="page-intro">
             <div>
               <p class="eyebrow">PIPELINE CONFIGURATION</p>
@@ -475,7 +475,7 @@
         </section>
 
         <!-- ==================== DATASET ==================== -->
-        <section class="page-view hidden" id="page-dataset">
+        <section class="page-view hidden" id="page-dataset" data-experiment-page>
           <div class="page-intro">
             <div>
               <p class="eyebrow">DATASET & GROUND TRUTH</p>
@@ -570,7 +570,7 @@
         </section>
 
         <!-- ==================== COMPARE ==================== -->
-        <section class="page-view hidden" id="page-compare">
+        <section class="page-view hidden" id="page-compare" data-experiment-page>
           <div class="page-intro">
             <div>
               <p class="eyebrow">EXPERIMENT EVALUATION</p>
@@ -651,7 +651,7 @@
         </section>
 
         <!-- ==================== HISTORY ==================== -->
-        <section class="page-view hidden" id="page-history">
+        <section class="page-view hidden" id="page-history" data-experiment-page>
           <div class="page-intro">
             <div>
               <p class="eyebrow">RUN HISTORY</p>
@@ -695,7 +695,7 @@
         </section>
 
         <!-- ==================== VIDEO PLACEHOLDER ==================== -->
-        <section class="page-view hidden" id="page-video">
+        <section class="page-view" id="page-video">
           <div class="page-intro">
             <div>
               <p class="eyebrow">VIDEO VIEWER</p>

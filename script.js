@@ -21,6 +21,8 @@ const escapeHTML = (value) =>
     "'": "&#39;"
   })[char]);
 
+let canAccessExperiments = false;
+
 function showToast(message) {
   const toast = $("#toast");
   if (!toast) return;
@@ -112,6 +114,13 @@ async function initializeAuthUI() {
     }
     loginLink.classList.add("hidden");
     profile.classList.remove("hidden");
+    canAccessExperiments = member.can_access_experiments === true;
+    $$("[data-experiment-access]").forEach((element) => {
+      element.classList.toggle("hidden", !canAccessExperiments);
+    });
+    if (canAccessExperiments) {
+      navigateToPage("workflow");
+    }
   } catch (error) {
     console.error("無法讀取登入狀態", error);
     showToast("目前無法連線到登入服務。");
@@ -156,8 +165,19 @@ const pageNames = {
   video: "影片觀看"
 };
 
+const experimentPages = new Set([
+  "overview",
+  "workflow",
+  "dataset",
+  "compare",
+  "history"
+]);
+
 function navigateToPage(pageName) {
-  if (!pageNames[pageName]) return;
+  if (!pageNames[pageName] ||
+      (experimentPages.has(pageName) && !canAccessExperiments)) {
+    return;
+  }
 
   $$(".page-view").forEach((page) => {
     page.classList.toggle("hidden", page.id !== `page-${pageName}`);
