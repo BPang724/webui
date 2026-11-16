@@ -10,7 +10,7 @@
   >
   <title>AutOutline Lab | 實驗平台</title>
   <link rel="stylesheet" href="style.css">
-  <script src="script.js?v=2" defer></script>
+  <script src="script.js?v=3" defer></script>
 </head>
 
 <body>
@@ -148,16 +148,16 @@
 
             <article class="card stat-card">
               <div class="stat-label">實驗版本</div>
-              <div class="stat-value" id="overviewExperimentCount">3</div>
-              <div class="stat-footnote">示範資料，尚未連接後端</div>
+              <div class="stat-value" id="overviewExperimentCount">0</div>
+              <div class="stat-footnote">目前建立的實驗版本</div>
             </article>
 
             <article class="card stat-card">
               <div class="stat-label">目前 Dataset</div>
               <div class="stat-value stat-value-text" id="overviewDatasetName">
-                Dataset A
+                尚未選取
               </div>
-              <div class="stat-footnote">可於 Workflow 編輯器切換</div>
+              <div class="stat-footnote">請先建立並選擇 Dataset</div>
             </article>
           </div>
 
@@ -242,7 +242,6 @@
                 <input
                   class="input"
                   id="workflowName"
-                  value="LocateAnything Baseline"
                   placeholder="輸入 Workflow 名稱"
                 >
               </div>
@@ -250,9 +249,7 @@
               <div class="form-field toolbar-field">
                 <label for="datasetSelect">測試 Dataset</label>
                 <select class="select" id="datasetSelect">
-                  <option value="Dataset A">Dataset A</option>
-                  <option value="Dataset B">Dataset B</option>
-                  <option value="Dataset C">Dataset C</option>
+                  <option value="">尚未建立 Dataset</option>
                 </select>
               </div>
 
@@ -261,7 +258,6 @@
                 <input
                   class="input"
                   id="experimentVersion"
-                  value="v1.0"
                   placeholder="例如 v1.1"
                 >
               </div>
@@ -500,9 +496,7 @@
             <div class="form-field">
               <label for="annotationDatasetSelect">播放清單 / Dataset</label>
               <select class="select" id="annotationDatasetSelect">
-                <option value="Dataset A">Dataset A</option>
-                <option value="Dataset B">Dataset B</option>
-                <option value="Dataset C">Dataset C</option>
+                <option value="">尚未建立 Dataset</option>
               </select>
             </div>
 
@@ -525,7 +519,7 @@
               <div class="section-heading">
                 <div>
                   <h3 class="section-title">影片清單</h3>
-                  <p class="section-subtitle" id="videoCount">共 5 部影片</p>
+                  <p class="section-subtitle" id="videoCount">共 0 部影片</p>
                 </div>
               </div>
 
@@ -537,10 +531,10 @@
                 <div>
                   <p class="eyebrow">GROUND TRUTH EDITOR</p>
                   <h3 class="section-title" id="selectedVideoTitle">
-                    第一部教學影片
+                    尚未選取影片
                   </h3>
                   <p class="section-subtitle" id="selectedVideoMeta">
-                    Dataset A · 影片時間點標註
+                    請先建立 Dataset 並新增影片
                   </p>
                 </div>
                 <span class="badge badge-warning" id="annotationStatus">
@@ -600,9 +594,6 @@
               <label for="compareDatasetSelect">比較 Dataset</label>
               <select class="select" id="compareDatasetSelect">
                 <option value="all">全部 Dataset</option>
-                <option value="Dataset A">Dataset A</option>
-                <option value="Dataset B">Dataset B</option>
-                <option value="Dataset C">Dataset C</option>
               </select>
             </div>
 
@@ -679,11 +670,11 @@
           <div class="card history-summary">
             <div>
               <div class="stat-label">紀錄總數</div>
-              <div class="stat-value" id="historyCount">3</div>
+              <div class="stat-value" id="historyCount">0</div>
             </div>
             <div>
               <div class="stat-label">成功</div>
-              <div class="stat-value" id="historySuccessCount">3</div>
+              <div class="stat-value" id="historySuccessCount">0</div>
             </div>
             <div>
               <div class="stat-label">最近執行</div>

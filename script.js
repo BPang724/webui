@@ -40,18 +40,6 @@ function formatMetric(value) {
   return Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : "—";
 }
 
-function getCurrentDateTime() {
-  return new Date().toLocaleString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
-  });
-}
-
 function statusBadge(status) {
   const isSuccess = status === "完成";
   const cls = isSuccess ? "badge badge-success" : "badge badge-warning";
@@ -718,9 +706,9 @@ function resetWorkflow() {
     module.enabled = true;
   });
 
-  $("#workflowName").value = "LocateAnything Baseline";
-  $("#experimentVersion").value = "v1.0";
-  $("#datasetSelect").value = "Dataset A";
+  $("#workflowName").value = "";
+  $("#experimentVersion").value = "";
+  $("#datasetSelect").value = "";
 
   selectedModuleId = "input";
 
@@ -737,51 +725,9 @@ $("#resetPageButton").addEventListener("click", () => {
   resetWorkflow();
 });
 
-/* ---------- 實驗資料：示範用途 ---------- */
+/* ---------- 實驗資料 ---------- */
 
-let experiments = [
-  {
-    id: 1,
-    name: "Baseline v1.0",
-    dataset: "Dataset A",
-    version: "v1.0",
-    precision: 0.82,
-    recall: 0.76,
-    f1: 0.79,
-    duration: 128,
-    status: "完成",
-    createdAt: "2026/10/28 10:20:00",
-    selected: true
-  },
-  {
-    id: 2,
-    name: "Title + Page Detection",
-    dataset: "Dataset A",
-    version: "v1.1",
-    precision: 0.86,
-    recall: 0.81,
-    f1: 0.83,
-    duration: 146,
-    status: "完成",
-    createdAt: "2026/10/28 11:05:00",
-    selected: true
-  },
-  {
-    id: 3,
-    name: "Alignment Test",
-    dataset: "Dataset B",
-    version: "v1.2",
-    precision: 0.79,
-    recall: 0.85,
-    f1: 0.82,
-    duration: 173,
-    status: "完成",
-    createdAt: "2026/10/28 14:30:00",
-    selected: true
-  }
-];
-
-let nextExperimentId = 4;
+let experiments = [];
 
 function experimentRow(experiment, includeDuration = false) {
   return `
@@ -803,25 +749,30 @@ function renderOverview() {
   $("#overviewExperimentCount").textContent = experiments.length;
   updateOverviewDataset();
 
-  $("#overviewExperimentTable").innerHTML = experiments
-    .slice()
-    .reverse()
-    .slice(0, 5)
-    .map((experiment) => experimentRow(experiment))
-    .join("");
+  $("#overviewExperimentTable").innerHTML = experiments.length
+    ? experiments
+        .slice()
+        .reverse()
+        .slice(0, 5)
+        .map((experiment) => experimentRow(experiment))
+        .join("")
+    : `<tr><td colspan="6" class="chart-empty">尚無實驗結果。</td></tr>`;
 }
 
 function updateOverviewDataset() {
-  $("#overviewDatasetName").textContent = $("#datasetSelect").value;
+  $("#overviewDatasetName").textContent =
+    $("#datasetSelect").value || "尚未選取";
 }
 
 function renderWorkflowExperiments() {
-  $("#workflowExperimentTable").innerHTML = experiments
-    .slice()
-    .reverse()
-    .slice(0, 5)
-    .map((experiment) => experimentRow(experiment))
-    .join("");
+  $("#workflowExperimentTable").innerHTML = experiments.length
+    ? experiments
+        .slice()
+        .reverse()
+        .slice(0, 5)
+        .map((experiment) => experimentRow(experiment))
+        .join("")
+    : `<tr><td colspan="6" class="chart-empty">尚無實驗結果。</td></tr>`;
 }
 
 $("#datasetSelect").addEventListener("change", updateOverviewDataset);
@@ -840,7 +791,7 @@ $("#saveWorkflowButton").addEventListener("click", () => {
   showToast("設定已暫存於目前頁面；重新整理後不會保留。");
 });
 
-/* ---------- 執行實驗：前端模擬 ---------- */
+/* ---------- 執行實驗 ---------- */
 
 $("#runExperimentButton").addEventListener("click", () => {
   const name = $("#workflowName").value.trim();
@@ -859,6 +810,12 @@ $("#runExperimentButton").addEventListener("click", () => {
     return;
   }
 
+  if (!dataset) {
+    showToast("請先建立並選擇 Dataset。");
+    $("#datasetSelect").focus();
+    return;
+  }
+
   const enabledModules = workflowModules.filter(
     (module) => module.enabled
   );
@@ -868,131 +825,14 @@ $("#runExperimentButton").addEventListener("click", () => {
     return;
   }
 
-  const button = $("#runExperimentButton");
-  button.disabled = true;
-  button.textContent = "執行中…";
-
-  showToast("已建立前端模擬實驗。此操作尚未執行實際模型。");
-
-  setTimeout(() => {
-    const lastExperiment = experiments[experiments.length - 1];
-
-    // 產生小幅度差異，僅用於 UI 預覽，不代表實際模型結果。
-    const precision = Math.min(
-      0.99,
-      Math.max(0.1, lastExperiment.precision + (Math.random() * 0.08 - 0.04))
-    );
-
-    const recall = Math.min(
-      0.99,
-      Math.max(0.1, lastExperiment.recall + (Math.random() * 0.08 - 0.04))
-    );
-
-    const f1 = (2 * precision * recall) / (precision + recall);
-
-    const experiment = {
-      id: nextExperimentId++,
-      name: `${name} ${version}`,
-      dataset,
-      version,
-      precision,
-      recall,
-      f1,
-      duration: Math.floor(90 + Math.random() * 110),
-      status: "完成",
-      createdAt: getCurrentDateTime(),
-      selected: true
-    };
-
-    experiments.push(experiment);
-    renderWorkflowExperiments();
-    renderOverview();
-    renderComparison();
-    renderHistory();
-
-    button.disabled = false;
-    button.textContent = "▶ 執行實驗";
-
-    showToast(
-      "前端模擬完成。評估數字為隨機示意值，不能視為實際實驗結果。"
-    );
-  }, 700);
+  showToast("目前尚未連接實驗執行服務，尚未建立實驗結果。");
 });
 
 /* ---------- Dataset 與 Ground Truth ---------- */
 
-const videoData = {
-  "Dataset A": [
-    {
-      id: "a1",
-      title: "第一部教學影片",
-      duration: "00:25:30",
-      timestamps: ["00:01:20", "00:04:35", "00:08:10"]
-    },
-    {
-      id: "a2",
-      title: "第二部教學影片",
-      duration: "00:32:10",
-      timestamps: ["00:02:15", "00:07:45"]
-    },
-    {
-      id: "a3",
-      title: "第三部教學影片",
-      duration: "00:18:45",
-      timestamps: []
-    },
-    {
-      id: "a4",
-      title: "第四部教學影片",
-      duration: "00:41:20",
-      timestamps: ["00:03:20", "00:12:30", "00:19:10"]
-    },
-    {
-      id: "a5",
-      title: "第五部教學影片",
-      duration: "00:29:05",
-      timestamps: ["00:05:40"]
-    }
-  ],
+const videoData = Object.create(null);
 
-  "Dataset B": [
-    {
-      id: "b1",
-      title: "投影片含頁碼範例",
-      duration: "00:35:10",
-      timestamps: ["00:01:15", "00:03:30", "00:09:20"]
-    },
-    {
-      id: "b2",
-      title: "投影片無頁碼範例",
-      duration: "00:27:40",
-      timestamps: ["00:02:50", "00:08:25"]
-    },
-    {
-      id: "b3",
-      title: "混合版面範例",
-      duration: "00:44:05",
-      timestamps: ["00:04:10", "00:15:40"]
-    }
-  ],
-
-  "Dataset C": [
-    {
-      id: "c1",
-      title: "不同版型測試影片",
-      duration: "00:22:35",
-      timestamps: ["00:03:05", "00:11:20"]
-    },
-    {
-      id: "c2",
-      title: "長時間教學影片",
-      duration: "01:05:10",
-      timestamps: ["00:02:15", "00:13:40", "00:28:20"]
-    }
-  ]
-};
-
-let selectedVideoId = "a1";
+let selectedVideoId = null;
 let annotationDirty = false;
 
 function getCurrentVideoList() {
@@ -1030,7 +870,7 @@ function renderVideoList() {
         </div>
       </button>
     `).join("")
-    : `<div class="timestamp-empty">沒有符合條件的影片。</div>`;
+    : `<div class="timestamp-empty">目前沒有影片，請新增 YouTube 影片。</div>`;
 
   $$(".video-item").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1046,14 +886,20 @@ function renderSelectedVideo() {
   const video = getSelectedVideo();
 
   if (!video) {
-    $("#selectedVideoTitle").textContent = "沒有可用影片";
-    $("#selectedVideoMeta").textContent = "請先在此 Dataset 新增 YouTube 影片。";
+    const hasDataset = Boolean($("#annotationDatasetSelect").value);
+    $("#selectedVideoTitle").textContent = "尚未選取影片";
+    $("#selectedVideoMeta").textContent = hasDataset
+      ? "請在此 Dataset 新增 YouTube 影片。"
+      : "請先建立並選擇 Dataset。";
     $("#annotationStatus").textContent = "尚未儲存";
     $("#annotationStatus").className = "badge badge-warning";
     $("#page-dataset .video-preview").innerHTML = `
       <div class="preview-icon">▶</div>
-      <h4>尚未新增影片</h4>
-      <p>請在上方貼上 YouTube 影片網址並新增至目前 Dataset。</p>
+      <h4>${hasDataset ? "尚未新增影片" : "尚未選擇 Dataset"}</h4>
+      <p>${hasDataset
+        ? "請在上方貼上 YouTube 影片網址並新增至目前 Dataset。"
+        : "請先建立 Dataset，再選擇清單並新增 YouTube 影片。"}
+      </p>
     `;
     $("#timestampList").innerHTML = "";
     $("#timestampSummary").textContent = "共 0 個 Ground Truth 時間點";
@@ -1211,13 +1057,40 @@ function getYouTubeVideoId(value) {
 }
 
 function renderDatasetOptions(selectedDataset) {
-  const select = $("#annotationDatasetSelect");
-  select.innerHTML = Object.keys(videoData).map((datasetName) => `
+  const datasetNames = Object.keys(videoData);
+  const datasetOptions = datasetNames.map((datasetName) => `
     <option value="${escapeHTML(datasetName)}"
       ${datasetName === selectedDataset ? "selected" : ""}>
       ${escapeHTML(datasetName)}
     </option>
   `).join("");
+  const currentWorkflowDataset = selectedDataset ?? $("#datasetSelect").value;
+  const currentAnnotationDataset =
+    selectedDataset ?? $("#annotationDatasetSelect").value;
+  const currentCompareDataset = $("#compareDatasetSelect").value || "all";
+
+  $("#datasetSelect").innerHTML = datasetOptions ||
+    `<option value="">尚未建立 Dataset</option>`;
+  $("#annotationDatasetSelect").innerHTML = datasetOptions ||
+    `<option value="">尚未建立 Dataset</option>`;
+  $("#compareDatasetSelect").innerHTML = `
+    <option value="all">全部 Dataset</option>
+    ${datasetOptions}
+  `;
+
+  $("#datasetSelect").value = datasetNames.includes(currentWorkflowDataset)
+    ? currentWorkflowDataset
+    : "";
+  $("#annotationDatasetSelect").value =
+    datasetNames.includes(currentAnnotationDataset)
+      ? currentAnnotationDataset
+      : "";
+  $("#compareDatasetSelect").value =
+    currentCompareDataset === "all" ||
+    datasetNames.includes(currentCompareDataset)
+      ? currentCompareDataset
+      : "all";
+  updateOverviewDataset();
 }
 
 $("#createDatasetButton").addEventListener("click", () => {
@@ -1246,10 +1119,18 @@ $("#createDatasetButton").addEventListener("click", () => {
   annotationDirty = false;
   renderVideoList();
   renderSelectedVideo();
+  renderComparison();
   showToast(`已建立 Dataset「${datasetName}」。`);
 });
 
 $("#addVideoButton").addEventListener("click", () => {
+  const datasetName = $("#annotationDatasetSelect").value;
+  if (!datasetName || !Object.hasOwn(videoData, datasetName)) {
+    showToast("請先建立並選擇 Dataset。");
+    $("#annotationDatasetSelect").focus();
+    return;
+  }
+
   const youtubeUrl = $("#newVideoUrl").value.trim();
   if (!youtubeUrl) {
     showToast("請先輸入 YouTube 影片網址。");
@@ -1298,7 +1179,7 @@ $("#addTimestampButton").addEventListener("click", () => {
     return;
   }
 
-  video.timestamps.push("00:00:00");
+  video.timestamps.push("");
   markAnnotationDirty();
   renderTimestampRows(video);
   renderVideoList();
@@ -1362,7 +1243,8 @@ function renderComparison() {
 
   $("#comparisonMetricLabel").textContent = metric.label;
 
-  $("#comparisonTable").innerHTML = filtered.map((experiment) => {
+  $("#comparisonTable").innerHTML = filtered.length
+    ? filtered.map((experiment) => {
     const checked = selectedExperimentIds.has(experiment.id);
 
     return `
@@ -1385,7 +1267,8 @@ function renderComparison() {
         <td>${statusBadge(experiment.status)}</td>
       </tr>
     `;
-  }).join("");
+    }).join("")
+    : `<tr><td colspan="8" class="chart-empty">尚無實驗結果。</td></tr>`;
 
   $$(".comparison-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", () => {
@@ -1415,7 +1298,7 @@ function renderComparisonChart() {
   if (!visibleExperiments.length) {
     $("#comparisonChart").innerHTML = `
       <div class="chart-empty">
-        尚未選取實驗版本，請勾選下方表格中的項目。
+        尚無可比較的實驗結果。
       </div>
     `;
     return;
@@ -1473,22 +1356,25 @@ function renderHistory() {
   $("#historyLastRun").textContent =
     sorted[0]?.createdAt || "尚無執行紀錄";
 
-  $("#historyTable").innerHTML = sorted.map((experiment) => `
-    <tr>
-      <td>${escapeHTML(experiment.createdAt)}</td>
-      <td class="table-name">${escapeHTML(experiment.name)}</td>
-      <td>${escapeHTML(experiment.dataset)}</td>
-      <td>${escapeHTML(experiment.version)}</td>
-      <td>${experiment.duration} 秒</td>
-      <td>${statusBadge(experiment.status)}</td>
-    </tr>
-  `).join("");
+  $("#historyTable").innerHTML = sorted.length
+    ? sorted.map((experiment) => `
+      <tr>
+        <td>${escapeHTML(experiment.createdAt)}</td>
+        <td class="table-name">${escapeHTML(experiment.name)}</td>
+        <td>${escapeHTML(experiment.dataset)}</td>
+        <td>${escapeHTML(experiment.version)}</td>
+        <td>${experiment.duration} 秒</td>
+        <td>${statusBadge(experiment.status)}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="6" class="chart-empty">尚無執行紀錄。</td></tr>`;
 }
 
 /* ---------- 初始化 ---------- */
 
 function initializeApp() {
   initializeAuthUI();
+  renderDatasetOptions();
   renderWorkflowModules();
   renderInspector();
 

@@ -2588,23 +2588,758 @@ async function loadPageData() {
 
 ---
 
-# W07 — 表單處理與前端輸入驗證 {#FormValidation}
-XSS（跨站腳本攻擊）？具表單功能的頁面 + 基本驗證 
+# W07 — Fetch API/AJAX串接外部公開API 2{#FetchAPI2}
 
---- 
+練習熟悉 Event → Function → fetch() → HTTP/API → JSON → DOM
 
-# W08 — OAuth 2.0 Login {#OAuth}
-了解第三方登入的運作與優缺點 
+> sidebar新增navigation區塊，對應api/root，故固定 (不管是否登入)。也就是登入後的功能區塊在此區塊下，要清楚分別兩區塊。若沒登入，預設內容空白。
+- 主要變更在 index.html、app.js 和 components.css。
+> id="rootNavigationHeading"不須展開，click後直接呼叫 /api/root/co/{cid}取得資料後，只取每個JSON物件前四個column顯示資料列表
+- 變更位於 index.html、app.js、components.css，API 格式也已記錄於 README.md。
+> dashboardCards 改為reuse 由 /api/root取得name, n顯示名稱和數量。[查看詳情](https://demo.wke.csie.ncnu.edu.tw/teacher/tasks) click如同click後直接呼叫 /api/root/co/{cid}取得資料。
+
+> 建立字典讓Department, Semester, Course, Member, Section對應：系所 學期 課程 教職員生數 開設數，以顯示於卡片。數量後面的 "筆" 可以刪除不顯示
+
+> Bugs: 導覽以下項目click (同卡片詳情) 沒反應
 
 ---
 
-# W09 — 使用者登入與token {#JWT}
-JWT？伺服器「記得」卻不存session，登入防弊
+# W08 — 表單處理與前端輸入驗證 {#FormValidation}
+
+XSS（跨站腳本攻擊）？具表單功能的頁面 + 基本驗證 
+
+## 1. 學習目標
+
+- 使用 HTML `<form>` 建立表單。
+- 使用 JavaScript 讀取、驗證使用者輸入。
+- 理解 XSS（Cross-Site Scripting，跨站腳本攻擊）。
+- 透過 AI Coding 完成表單功能與基本安全防護。
+
+## 2. HTML Form 基礎
+
+常用元素：
+
+| 元素           | 用途           |
+| -------------- | -------------- |
+| `<form>`       | 定義表單       |
+| `<input>`      | 輸入資料       |
+| `<label>`      | 欄位標籤       |
+| `<button>`     | 提交表單       |
+| `required`     | 必填           |
+| `minlength`    | 最小字元數     |
+| `type="email"` | Email格式驗證  |
+| `pattern`      | 正規表示式驗證 |
+
+範例：建立註冊表單。SPA寫法，form裡面沒有 `action=...`
+```html
+<form id="registerForm">
+  <label for="username">姓名</label>
+  <input id="username" type="text"
+         required minlength="2">
+
+  <label for="email">Email</label>
+  <input id="email" type="email" required>
+
+  <button type="submit">送出</button>
+</form>
+
+<p id="result"></p>
+
+<script src="app.js"></script>
+```
+
+## 3. JavaScript 表單處理
+
+核心流程：
+
+`Event → Function → Validation → DOM Update`
+
+```javascript
+const form = document.querySelector("#registerForm");
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault(); // 阻止預設提交行為
+
+  const username = document.querySelector("#username").value.trim();
+  const email = document.querySelector("#email").value.trim();
+  if (username.length < 2) {
+    alert("姓名至少需要2個字元");
+    return;
+  }
+
+  const response = await fetch("/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username })
+  });
+
+  if (response.ok) {
+    console.log("註冊成功");
+  }
+
+  document.querySelector("#result").textContent = `註冊資料：${username} $email})`;
+});
+```
+
+重點：
+- `submit`：使用者提交表單時觸發。
+- `preventDefault()`：取消表單的預設提交，阻止瀏覽器預設提交與reload page。form裡面沒有 action=... 若沒有 event.preventDefault(); 就會觸發 action=''。
+> 一句話總結：preventDefault()不是禁止提交資料，而是把「何時提交、如何提交、提交後如何處理」的控制權，從瀏覽器預設行為交給JavaScript (現今前端SPA寫法) vs. 傳統寫法，已經過時。
+```html
+<form action="/register" method="POST">
+  <input name="username" type="text">
+  <button type="submit">送出</button>
+</form>
+```
+- `.value`：取得輸入值。
+- `.trim()`：移除字串前後空白。
+- `if`：進行自訂驗證。
+- `.textContent`：安全地顯示純文字。
+
+HTML內建驗證通常會先於`submit`事件執行。
+
+## 4. 前端驗證（Client-side Validation）
+
+常見驗證：
+
+1. 必填欄位：`required`
+2. 長度限制：`minlength`、`maxlength`
+3. 格式檢查：`type="email"`、`pattern`
+4. 自訂條件：JavaScript `if`判斷
+
+例如：
+
+```javascript
+if (!email.includes("@")) {
+  alert("Email格式錯誤");
+  return;
+}
+```
+
+注意：上述檢查只是簡化示例，實務上應優先使用HTML內建Email驗證。
+
+**重要：前端驗證不等於安全防護。**
+
+使用者可以透過DevTools、curl或Postman繞過前端驗證。
+
+若表單資料會送到後端API，後端必須重新驗證資料。
+
+## 5. XSS（Cross-Site Scripting）
+
+### 什麼是XSS？
+
+攻擊者讓惡意JavaScript在其他使用者的瀏覽器中執行。
+
+可能造成：
+
+- 竄改網頁內容。
+- 假冒登入表單，誘騙使用者輸入資料。
+- 以使用者身分執行未授權操作。
+- 竊取JavaScript可存取的敏感資料。
+
+因此，任何輸入的字串，都不應該解析為HTML：不要用 `innerHTML` 來接，除非你能有把握處理衍生問題。
+
+### 不安全的寫法
+
+```javascript
+const username =
+  document.querySelector("#username").value;
+
+document.querySelector("#result").innerHTML =
+  `Hello, ${username}`;
+```
+
+如果輸入：
+
+```html
+<img src=x onerror=alert('XSS')>
+```
+
+`innerHTML`會將輸入解析為HTML，可能觸發惡意事件。
+
+### 安全的寫法
+
+```javascript
+document.querySelector("#result").textContent =
+  `Hello, ${username}`;
+```
+
+`textContent`會將輸入視為純文字，不會解析成HTML或執行其中的事件處理程式。
+
+### innerHTML vs. textContent
+
+| 屬性          | 行為                 | 安全性                    |
+| ------------- | -------------------- | ------------------------- |
+| `innerHTML`   | 將字串解析成HTML     | 插入不可信內容時有XSS風險 |
+| `textContent` | 將字串視為純文字     | 適合顯示使用者輸入        |
+| `value`       | 取得或設定表單欄位值 | 不會自行將字串解析為HTML  |
+
+注意：`innerHTML`並非一律禁止，但不應直接插入未經安全處理的使用者資料。若必須呈現使用者提供的HTML，應使用可靠的HTML Sanitizer。
+
+## 6. AI Coding實作練習
+
+### Task 1：建立表單
+
+Prompt：
+
+> 使用HTML、CSS、JavaScript建立會員註冊表單，包含姓名、Email、密碼與送出按鈕。不使用React。HTML、CSS、JS分成三個檔案。
+
+### Task 2：加入驗證
+
+Prompt：
+
+> 在現有表單加入前端驗證：姓名至少2字元、Email格式正確、密碼至少8字元。驗證失敗時在對應欄位下方顯示錯誤訊息，不使用alert。
+
+### Task 3：檢查XSS
+
+Prompt：
+
+> 檢查目前JavaScript是否存在XSS風險，特別是innerHTML與使用者輸入。請指出危險程式碼，解釋原因，並改用安全的DOM操作方式。
+
+### Task 4：理解前後端安全責任
+
+Prompt：
+
+> 如果使用者繞過HTML required及JavaScript驗證，直接使用curl送出不合法資料到FastAPI，會發生什麼？應如何使用Pydantic在後端再次驗證？
+
+## 7. 本週應理解的重點
+
+1. HTML負責表單結構與基本驗證。
+2. JavaScript負責事件處理、自訂驗證與DOM更新。
+3. `preventDefault()`可阻止表單預設提交。
+4. XSS的核心風險是將不可信資料當成可執行內容。
+5. 顯示純文字時，優先使用`textContent`。
+6. 前端驗證改善UX，後端驗證才是資料安全的必要防線。
+
+## 8. 課後思考
+
+- 為什麼HTML已經有required，還需要JavaScript驗證？
+- `innerHTML`與`textContent`有什麼差異？
+- 為什麼前端驗證不能取代後端驗證？
+- 如果資料經過後端驗證，是否就一定不會發生XSS？
+- AI產生的程式碼應如何檢查是否存在XSS風險？
+
+
+--- 
+
+# W09 — OAuth、使用者登入與token {#JWT}
+- OAuth 2.0 Login：了解第三方登入的運作與優缺點
+- JWT？伺服器「記得」卻不存session，登入防弊
+
+## 1. 學習目標
+- 了解網站為什麼需要登入。
+- 認識OAuth 2.0與Google第三方登入。
+- 理解Token、JWT與Session的基本概念。
+- 了解臺灣《個人資料保護法》與網站開發的關係。
+
+## 2. 為什麼網站需要登入？
+例如：學校教務系統
+- 學生：只能查詢自己的成績。
+- 老師：可以輸入自己授課班級的成績。
+- 管理員：可以管理使用者帳號。
+
+網站必須解決兩個問題：
+| 名詞 | 意義 | 範例 |
+|---|---|---|
+| Authentication（身分驗證） | 你是誰？ | 確認是學生A |
+| Authorization（授權） | 你可以做什麼？ | 學生A只能看自己的成績 |
+
+**登入成功不代表擁有所有權限。**
+
+## 3. OAuth 2.0：使用Google登入
+許多網站提供「使用Google登入」，使用者不需要為每個網站建立新的密碼。
+
+### 登入流程
+1. 使用者點擊「使用Google登入」。
+2. 網站將使用者導向Google。
+3. Google確認使用者身分。
+4. 使用者同意提供必要的資料。
+5. Google將驗證結果交給網站。
+6. 網站確認結果後，讓使用者登入。
+
+實際上，Google登入通常使用OAuth 2.0搭配OpenID Connect（OIDC）。簡單區分：
+- OAuth 2.0：讓應用程式取得特定資源的存取授權。
+- OIDC：建立在OAuth 2.0之上，讓網站確認使用者身分。
+
+### 優點與缺點
+| 優點 | 缺點 |
+|---|---|
+| 不必為網站另外記住密碼 | 依賴Google服務 |
+| 網站不必保存Google密碼 | 需要正確設定登入流程 |
+| 使用者登入方便 | 必須注意個資與權限 |
+
+**注意：使用Google登入，不代表網站可以任意讀取使用者的Google資料。**
+
+## 4. Token：登入後的通行證
+問題：使用者已經登入，為什麼切換到其他頁面時，不需要重新輸入密碼？
+> 因為**你開發的網站**可以透過Session或Token維持登入狀態。
+
+### Token的概念
+可以把Token想成一張「電子通行證」。
+
+1. 使用者登入成功。
+2. 伺服器發給使用者Token。
+3. 使用者呼叫API時帶上Token。
+4. 伺服器驗證Token。
+5. 驗證成功後，提供有權限使用的資料。
+
+例如：
+```http
+GET /api/my-grades
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+伺服器收到Request後：
+- Token有效：繼續檢查使用者權限。
+- Token無效或過期：回傳401 Unauthorized。
+- Token有效，但沒有權限：通常回傳403 Forbidden。
+
+## 5. JWT是什麼？
+JWT（JSON Web Token）是一種常見的Token格式。它可以記錄：
+```json
+{
+  "sub": "student001",
+  "role": "student",
+  "exp": 1793509200
+}
+```
+
+- `sub`：使用者識別碼。**相同Gmail OAuth登入不同client_ID網站，sub會相同。**
+- `role`：使用者角色。
+- `exp`：Token到期時間（Unix timestamp）。
+
+JWT通常包含數位簽章，讓伺服器可以驗證Token是否遭到竄改。
+
+### Session vs. JWT
+| Session | JWT |
+|---|---|
+| 伺服器保存登入狀態 | Token可攜帶登入資訊 |
+| 使用者持有Session ID | 使用者持有JWT |
+| 伺服器查詢Session | 伺服器驗證JWT |
+| 可以刪除Session使其失效 | JWT通常需要額外撤銷機制 |
+
+JWT的優點是伺服器不一定需要儲存每個使用者的Session。但要注意：
+- JWT不是加密，Payload通常可以被讀取。
+- JWT不應包含密碼或不必要的個資。
+- Token被偷走，攻擊者可能冒用使用者身分。
+- JWT不能取代後端權限檢查。
+
+## 6. 臺灣《個人資料保護法》
+網站開發除了功能正確，也必須保護使用者個資。
+
+### 什麼是個人資料？
+依《個人資料保護法》第2條，個人資料包含能直接或間接識別特定自然人的資料。例如：
+- 姓名、生日。
+- Email、電話、地址。
+- 身分證字號。
+- 學籍、成績等可識別學生的資料。
+
+### 開發網站應注意哪些法規？
+| 法條 | 主要觀念 | 網站開發實例 |
+|---|---|---|
+| 第2條 | 個人資料的定義 | Email、姓名可能是個資 **就算只存sub，降低直接識別及資料外洩風險，但仍可能屬於個資** |
+| 第5條 | 不得超過特定目的的必要範圍 | 註冊不應要求無關個資，**「資料最小化（Data Minimization）」，只蒐集特定目的所必要的資料** |
+| 第8條 | 蒐集個資時應依法告知 | 說明蒐集目的、使用方式等 **隱私權宣告內容必須符合第8條規定的告知事項** |
+| 第19條 | 非公務機關蒐集個資須有特定目的與合法依據 | 不能無理由蒐集會員資料 **隱私權與個資蒐集宣告** |
+| 第3條 | 當事人有查詢、更正、請求刪除等權利 | 提供合法的個資權利行使管道 **個人設定功能**，也可提供聯絡窗口處理查詢、更正、刪除等請求。 |
+
+### 範例：設計會員註冊系統
+假設網站只提供課程查詢功能。不合理設計：
+- 強制輸入身分證字號。
+- 強制提供住家地址。
+- 未告知用途就蒐集生日。
+
+較合理設計：
+- 只蒐集必要的帳號識別資料。
+- 清楚告知資料用途。
+- 不任意公開會員資料。
+- 使用HTTPS傳輸資料。
+- 依權限限制個資存取。
+
+**重要：取得使用者同意，不代表可以無限制蒐集或利用個資。**
+
+## 7. AI Coding實作練習
+
+### Task 1：製作登入頁面
+> 使用HTML、CSS、JavaScript製作簡單登入頁面，包含Email、密碼、登入按鈕及Google登入按鈕。先完成UI，不需要串接真實Google服務。
+
+### Task 2：理解Token
+> 使用JavaScript模擬登入成功後取得Token，並在頁面顯示登入狀態。這只是教學模擬，不需要真正的帳號驗證。
+
+### Task 3：思考個資保護
+> 檢查目前會員註冊表單，根據臺灣個人資料保護法第5條與第8條，分析哪些欄位沒有必要蒐集，以及應如何向使用者告知個資用途。
+
+## 8. 本週重點
+1. Authentication確認身分，Authorization確認權限。
+2. OAuth 2.0搭配OIDC可以實現Google第三方登入。
+3. Token讓使用者不必每次呼叫API都重新登入。
+4. JWT可以讓伺服器不儲存Session仍能驗證Token。
+5. JWT被竊取仍可能造成帳號遭冒用。
+6. 開發網站應遵守個資法，避免蒐集不必要的資料。
+
+## 9. 課後思考
+1. 使用Google登入，網站是否知道你的Google密碼？
+2. JWT有數位簽章，是否代表內容不會被別人看到？
+3. 學生A已經登入，能否修改API參數查看學生B的成績？
+4. 為什麼註冊會員不應要求填寫無關的個資？
+5. AI產生的登入系統，應如何檢查是否有個資外洩風險？
+
+## 參考資料
+- [全國法規資料庫：個人資料保護法](https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=I0050021)
+- [Google Identity：OAuth 2.0](https://developers.google.com/identity/protocols/oauth2)
+- [JWT標準：RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)
+
 
 ---
 
 # W10 — Session/Cookie狀態管理 {#Cookie}
 Cookie vs. LocalStorage vs. SessionStorage；CSRF攻擊原理
+
+## 1. 學習目標
+- 理解HTTP是Stateless（無狀態）協定。
+- 比較Cookie、LocalStorage與SessionStorage。
+- 理解Session ID與JWT如何維持登入狀態。
+- 了解Cookie的Domain、Path、HttpOnly、Secure、SameSite。
+- 理解跨子網域Cookie共享的資安風險。
+- 認識CSRF攻擊原理與基本防護。
+- 使用DevTools追蹤Cookie與HTTP Request。
+
+## 2. 為什麼需要Session？
+HTTP本身是Stateless，伺服器不會自動記住前一次Request的使用者。例如：
+```text
+Request 1：POST /login
+Request 2：GET /profile
+Request 3：GET /my-grades
+```
+
+問題：伺服器如何知道三次Request來自同一位已登入使用者？常見方法：
+1. Session：伺服器保存登入狀態，瀏覽器保存Session ID。
+2. JWT：瀏覽器保存Token，伺服器每次驗證Token。
+
+### Session登入流程
+```text
+Browser                         FastAPI
+   |                               |
+   |---- POST /login ------------->|
+   |                               | 驗證帳號密碼
+   |                               | 建立Session
+   |<--- Set-Cookie: session=abc --|
+   |                               |
+   |---- GET /profile ------------>|
+   |     Cookie: session=abc       |
+   |                               | 查詢Session
+   |<--- 個人資料 ------------------|
+```
+
+**Cookie負責保存並傳送Session ID，Session資料通常由伺服器管理。**
+
+## 3. Cookie vs. LocalStorage vs. SessionStorage
+三者都可以在瀏覽器端保存資料，但用途不同。
+| 比較 | Cookie | LocalStorage | SessionStorage |
+|---|---|---|---|
+| 保存位置 | 瀏覽器 | 瀏覽器 | 瀏覽器 |
+| 容量 | 通常約4KB/筆 | 通常數MB | 通常數MB |
+| 關閉分頁 | 依Cookie期限 | 保留 | 通常清除該分頁資料 |
+| 自動附帶HTTP Request | 是，符合條件時 | 否 | 否 |
+| JavaScript讀取 | 非HttpOnly可讀 | 可讀 | 可讀 |
+| 常見用途 | Session、偏好設定 | 主題、介面設定 | 暫時表單資料 |
+
+### JavaScript操作範例
+```javascript
+// LocalStorage：關閉瀏覽器後通常仍保留
+localStorage.setItem("theme", "dark");
+console.log(localStorage.getItem("theme"));
+
+// SessionStorage：分頁工作階段資料
+sessionStorage.setItem("step", "2");
+console.log(sessionStorage.getItem("step"));
+
+// Cookie：可設定有效期限與傳送範圍
+document.cookie = "language=zh-TW; Path=/; SameSite=Lax";
+```
+
+注意：
+- LocalStorage、SessionStorage不會自動隨HTTP Request送出。
+- Cookie會依Domain、Path等條件自動附帶。
+- HttpOnly Cookie無法透過JavaScript讀取。
+- 三者都不適合儲存使用者密碼。
+- LocalStorage與SessionStorage中的Token可能被XSS攻擊讀取。
+
+## 4. Cookie重要屬性
+伺服器可以透過HTTP Response設定Cookie：
+```http
+Set-Cookie: session=abc123; Path=/; Secure; HttpOnly; SameSite=Lax
+```
+
+| 屬性 | 用途 |
+|---|---|
+| Domain | 指定哪些網域及子網域可收到Cookie |
+| Path | 指定Cookie適用的URL路徑 |
+| Secure | 僅透過HTTPS傳送（localhost有例外） |
+| HttpOnly | 禁止JavaScript直接讀取 |
+| SameSite | 限制跨站請求附帶Cookie |
+| Max-Age | 設定Cookie有效秒數 |
+| Expires | 設定Cookie到期時間 |
+
+瀏覽器可能多人使用，或同domain多網站服務存取，可能衍生問題？
+
+### Cookie沒有設定Domain會怎樣？
+```http
+Set-Cookie: session=abc123; Path=/; Secure; HttpOnly
+```
+這是Host-only Cookie，只會傳送到設定Cookie的主機。例如：
+```text
+a.example.com → 可以收到
+b.example.com → 不會收到
+```
+
+如果設定：
+```http
+Set-Cookie: session=abc123; Domain=example.com; Path=/; Secure; HttpOnly
+```
+
+那麼符合條件的子網域都可能收到：
+```text
+a.example.com → 可以收到
+b.example.com → 可以收到
+```
+
+**Cookie的Domain不是只影響儲存位置，也會影響登入憑證傳送到哪些伺服器。**
+
+> 一堆學生web apps以reverse proxy of demo.wke進行，cookie應該以student_no為 prefix，以免互相覆蓋？
+
+建議統一規範：
+- 名稱：<student_no>_<app_id>_session，避免同一學生多個 app 也撞名。
+- Path：對應 app 對外的路徑，例如 /s123/app1/。
+- Domain：省略，讓 Cookie 限定在目前 host。
+- 登出刪除 Cookie 時，使用相同的名稱、Path、Domain 設定。
+
+Cookie 是否覆蓋主要取決於 名稱、Domain、Path；不同 Path 可以保留同名 Cookie，但路徑重疊時可能同時送出，造成後端解析混淆。因此 prefix 加上 Path 會比較穩。
+
+## 5. 跨子網域Cookie的資安風險
+假設同一組織有三個網站：
+```text
+login.school.example
+student.school.example
+test.school.example
+```
+
+如果登入系統設定：
+```http
+Set-Cookie: access_token=JWT; Domain=school.example; Path=/; Secure; HttpOnly
+```
+
+使用者造訪`test.school.example`時，瀏覽器可能自動傳送：
+```http
+GET / HTTP/1.1
+Host: test.school.example
+Cookie: access_token=JWT
+```
+
+即使Cookie設定HttpOnly，測試網站的伺服器仍可能收到Token。
+
+### 兩種重要風險
+**風險A：Cookie洩漏**
+> 如果不同子網域由不同團隊管理，共用Domain Cookie可能讓不需要Token的伺服器收到登入憑證。
+
+**風險B：Cookie Tossing**
+> 子網域B可能設定父網域的同名Cookie，干擾子網域A的Cookie解析。例如：
+```http
+Set-Cookie: session=OTHER_VALUE; Domain=school.example; Path=/
+```
+
+即使A原本使用Host-only Cookie，瀏覽器也可能在請求A時附帶兩個同名Cookie，造成後端解析上的風險。
+
+### 建議：使用__Host- Cookie
+```http
+Set-Cookie: __Host-session=abc123; Path=/; Secure; HttpOnly; SameSite=Lax
+```
+
+`__Host-`前綴要求：
+1. 必須設定Secure。
+2. Path必須是`/`。
+3. 不可以設定Domain。
+
+因此可以降低跨子網域Cookie植入與共用的風險。
+
+注意：`__Host-`不會防止所有XSS或CSRF攻擊。
+
+## 6. CSRF（Cross-Site Request Forgery）
+中文：跨站請求偽造。
+
+### 攻擊原理
+假設使用者已登入銀行網站：
+```text
+https://bank.example
+```
+
+瀏覽器保存銀行的Session Cookie。此時使用者開啟惡意網站：
+```text
+https://evil.example
+```
+
+惡意網站可能嘗試讓瀏覽器發送：
+```http
+POST https://bank.example/transfer
+```
+
+如果銀行的Session Cookie會隨該請求送出，且銀行沒有其他CSRF防護，伺服器可能誤以為這是使用者本人要求的轉帳。
+
+### CSRF攻擊流程
+```text
+1. 使用者登入銀行
+       ↓
+2. Browser保存Session Cookie
+       ↓
+3. 使用者開啟惡意網站
+       ↓
+4. 惡意網站誘使Browser送出Request
+       ↓
+5. Browser可能自動附帶銀行Cookie
+       ↓
+6. 銀行若缺乏CSRF防護，可能執行操作
+```
+
+**CSRF的核心不是偷走Cookie，而是利用瀏覽器可能自動附帶Cookie的特性，誘使伺服器執行非使用者本意的操作。**
+
+## 7. CSRF防護方法
+
+### 方法A：SameSite Cookie
+```http
+Set-Cookie: session=abc123; Secure; HttpOnly; SameSite=Lax
+```
+
+| SameSite | 行為 |
+|---|---|
+| Strict | 限制最嚴格，跨站請求不附帶Cookie |
+| Lax | 允許部分跨站頂層導覽，例如一般GET連結 |
+| None | 允許跨站附帶Cookie，須搭配Secure |
+
+注意：
+- SameSite=Lax能阻擋許多傳統跨站POST攻擊。
+- SameSite不能取代所有CSRF防護。
+- 同一Site內不同子網域通常仍屬Same-site。
+- GET不應用於轉帳、刪除等改變資料的操作。
+
+### 方法B：CSRF Token
+伺服器產生不可預測的CSRF Token，要求修改資料的Request附帶Token。
+```text
+Browser送出：
+POST /update-profile
+
+Cookie: session=abc123
+X-CSRF-Token: RANDOM_CSRF_TOKEN
+```
+
+伺服器驗證CSRF Token後，才允許修改資料。攻擊網站即使能誘使瀏覽器送出Request，也不應能取得或產生有效的CSRF Token。
+
+### 方法C：驗證Origin
+對敏感操作，後端可檢查HTTP Origin Header，確認請求是否來自允許的來源。Origin驗證通常作為多層防護的一部分。
+
+## 8. 使用DevTools追蹤Cookie
+使用Edge或Chrome：
+
+### Step 1：查看Cookie
+1. 開啟網站，按F12。
+2. 選擇Application。
+3. 找到Storage → Cookies。
+4. 觀察Name、Domain、Path、HttpOnly、Secure、SameSite。
+
+### Step 2：查看Request
+1. 切換Network。
+2. 選擇Fetch/XHR。
+3. 執行需要登入的操作。
+4. 點選API Request。
+5. 查看Headers → Request Headers → Cookie。
+
+觀察：
+- 哪些Cookie真的被送出？
+- Cookie的Domain是否涵蓋其他子網域？
+- 是否存在不必要的登入Token共享？
+
+### Step 3：比較不同子網域
+假設：
+```text
+a.school.example
+b.school.example
+```
+
+觀察兩個網站的Request Headers，確認是否收到相同的Cookie。
+
+注意：只觀察自己有權限測試的網站，不要複製或公開完整Session ID與JWT。
+
+## 9. AI Coding實作練習
+
+### Task 1：比較瀏覽器儲存方式
+> 使用HTML與JavaScript製作一個簡單頁面，提供LocalStorage、SessionStorage與Cookie三種資料保存功能。讓使用者輸入暱稱並儲存，再重新整理頁面，觀察三者差異。
+
+### Task 2：觀察Cookie安全屬性
+> 使用FastAPI建立一個測試API，回傳Set-Cookie，設定HttpOnly、Secure、SameSite=Lax。請解釋每個屬性的用途，並教我使用DevTools確認Cookie是否儲存及傳送。
+
+### Task 3：分析跨子網域風險
+> 假設a.example.com與b.example.com是不同系統，但共用Domain=example.com的Session Cookie。請分析Cookie外洩與Cookie Tossing風險，並提出安全的Cookie設定方式。
+
+### Task 4：分析CSRF
+> 解釋為什麼瀏覽器自動附帶Session Cookie可能造成CSRF攻擊，並比較SameSite=Lax與CSRF Token的防護效果。
+
+## 10. 本週重點
+1. HTTP是Stateless，需要額外機制維持登入狀態。
+2. Cookie可自動附帶Request；LocalStorage與SessionStorage不會。
+3. Session ID與JWT都可能成為需要保護的登入憑證。
+4. HttpOnly防止JavaScript直接讀取Cookie，但不阻止伺服器收到Cookie。
+5. Domain設定過廣可能造成跨子網域Token暴露。
+6. Host-only及__Host- Cookie可降低跨子網域共享與植入風險。
+7. CSRF利用瀏覽器自動附帶憑證的行為。
+8. SameSite與CSRF Token是重要的CSRF防護措施。
+
+## 11. 課後思考
+1. 為什麼Cookie會自動送到伺服器，而LocalStorage不會？
+2. HttpOnly Cookie是否代表伺服器不可能收到Token？
+3. 為什麼Domain=example.com可能讓多個子網域收到相同Session Cookie？
+4. Site B能否直接讀取Site A的Host-only Cookie？
+5. Cookie Tossing與Cookie Theft有什麼差異？
+6. CSRF攻擊者是否一定需要知道使用者的Session ID？
+7. SameSite=Lax能否完全防止CSRF？
+8. 為什麼API不能只檢查使用者已登入，還需要檢查操作權限？
+
+## 參考資料
+
+- [MDN：HTTP Cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies)
+- [MDN：Set-Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie)
+- [MDN：Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API)
+- [OWASP：Cross-Site Request Forgery Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [OWASP：Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+
+## 反思：公用電腦登入安全
+為什麼不建議在公用電腦登入個人帳號？
+- Cookie可能保存Session ID或JWT，讓瀏覽器維持登入狀態。
+- LocalStorage可能保存登入相關資料。
+- 忘記登出時，下一位使用者可能直接進入帳號。
+- **公用電腦可能安裝惡意程式或不安全的瀏覽器擴充功能。**
+
+
+**若必須使用公用電腦：**
+0. **檢查瀏覽器Extensions（擴充功能）**：確認沒有可疑或不明來源的擴充功能，特別注意具有「讀取及變更所有網站資料」權限者。無痕模式也應確認是否允許擴充功能執行。
+1. **優先使用無痕模式**（InPrivate / Incognito），降低Cookie、LocalStorage等登入資料殘留的風險。
+2. 不勾選「記住我」，不儲存帳號密碼。
+3. 使用完畢後，主動登出所有使用過的帳號。
+4. 關閉所有無痕視窗，清除該工作階段的瀏覽資料。
+5. 避免在不可信的公用電腦操作銀行、個資等敏感系統。
+
+**注意：**
+- 無痕模式不代表沒有Extensions執行，部分擴充功能可能被允許在無痕模式運作。
+- 即使沒有可疑Extensions，仍可能存在Keylogger、惡意軟體或其他系統層級的監控。
+- HttpOnly Cookie可防止一般JavaScript直接讀取Cookie，但不能保證抵擋具有高權限的惡意擴充功能。
+- 最安全的方式仍是使用自己信任、持續更新且受到妥善管理的裝置。
+
+**重要：無痕模式主要防止本機瀏覽資料殘留，並不能防止惡意程式、Keylogger或Token在使用期間遭竊。**
+
+- 無痕模式是降低風險的方法，不是安全保證。
+- 安全登出（Logout）不應只是前端刪除Cookie，後端也應讓Session或可撤銷的登入憑證失效。
+- 對使用JWT的系統尤其重要：即使瀏覽器已刪除JWT，只要該JWT尚未過期且後端沒有撤銷機制，先前遭竊的Token仍可能被使用。
+
 
 ---
 
