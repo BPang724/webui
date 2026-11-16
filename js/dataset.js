@@ -3,9 +3,110 @@
 /* ---------- Dataset 與 Ground Truth ---------- */
 
 const videoData = Object.create(null);
+const datasetRecords = new Map();
 
 let selectedVideoId = null;
 let annotationDirty = false;
+let datasetLoadVersion = 0;
+let datasetVideosLoadVersion = 0;
+
+function datasetApiUrl(path) {
+  return new URL(`api/${path}`, window.location.href);
+}
+
+async function datasetApiRequest(path, options = {}) {
+  const response = await fetch(datasetApiUrl(path), {
+    credentials: "same-origin",
+    cache: "no-store",
+    ...options
+  });
+
+  if (!response.ok) {
+    let message = `API 請求失敗（HTTP ${response.status}）。`;
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") {
+        message = body.detail;
+      } else if (Array.isArray(body.detail)) {
+        message = body.detail.map((item) => item.msg).join("、");
+      }
+    } catch (error) {
+      console.error("無法讀取 API 錯誤回應", error);
+    }
+    throw new Error(message);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function formatSeconds(value) {
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const seconds = value % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function videoFromApi(video) {
+  return {
+    id: video.id,
+    title: video.title || `YouTube 影片 ${video.youtube_id}`,
+    youtubeId: video.youtube_id,
+    url: video.url,
+    duration: Number.isInteger(video.duration_seconds)
+      ? formatSeconds(video.duration_seconds)
+      : "未知",
+    durationSeconds: video.duration_seconds,
+    timestamps: video.ground_truth_timestamps.map(formatSeconds)
+  };
+}
+
+async function loadDatasetList() {
+  const requestVersion = ++datasetLoadVersion;
+  const datasets = await datasetApiRequest("datasets");
+  if (requestVersion !== datasetLoadVersion) return;
+
+  for (const name of Object.keys(videoData)) delete videoData[name];
+  datasetRecords.clear();
+  datasets.forEach((dataset) => {
+    datasetRecords.set(dataset.name, dataset);
+    videoData[dataset.name] = [];
+  });
+
+  renderDatasetOptions();
+  renderVideoList();
+  renderSelectedVideo();
+  renderComparison();
+
+  const selectedDataset = datasetRecords.get($("#annotationDatasetSelect").value);
+  if (selectedDataset) {
+    await loadDatasetVideos(selectedDataset);
+  }
+}
+
+async function loadDatasetVideos(dataset) {
+  const requestVersion = ++datasetVideosLoadVersion;
+  const response = await datasetApiRequest(`datasets/${dataset.id}`);
+  if (
+    requestVersion !== datasetVideosLoadVersion ||
+    $("#annotationDatasetSelect").value !== dataset.name
+  ) {
+    return;
+  }
+
+  videoData[dataset.name] = response.videos.map(videoFromApi);
+  if (!getCurrentVideoList().some((video) => video.id === selectedVideoId)) {
+    selectedVideoId = getCurrentVideoList()[0]?.id || null;
+  }
+  annotationDirty = false;
+  renderVideoList();
+  renderSelectedVideo();
+}
+
+function handleDatasetApiError(action, error) {
+  console.error(action, error);
+  showToast(error instanceof Error ? error.message : "操作失敗，請稍後再試。");
+}
 
 function getCurrentVideoList() {
   return videoData[$("#annotationDatasetSelect").value] || [];
@@ -46,7 +147,7 @@ function renderVideoList() {
 
   $$(".video-item").forEach((button) => {
     button.addEventListener("click", () => {
-      selectedVideoId = button.dataset.videoId;
+      selectedVideoId = Number(button.dataset.videoId);
       annotationDirty = false;
       renderVideoList();
       renderSelectedVideo();
@@ -159,6 +260,15 @@ function renderTimestampRows(video) {
         return;
       }
 
+      if (video.timestamps.some((timestamp, timestampIndex) =>
+        timestampIndex !== index &&
+        timestampToSeconds(timestamp) === timestampToSeconds(value)
+      )) {
+        showToast("同一支影片不能有重複的切換時間點。");
+        input.focus();
+        return;
+      }
+
       video.timestamps[index] = value;
       sortTimestamps(video.timestamps);
       markAnnotationDirty();
@@ -229,16 +339,18 @@ function getYouTubeVideoId(value) {
 }
 
 function renderDatasetOptions(selectedDataset) {
-  const datasetNames = Object.keys(videoData);
+  const datasetNames = Array.from(datasetRecords.keys());
   const datasetOptions = datasetNames.map((datasetName) => `
     <option value="${escapeHTML(datasetName)}"
       ${datasetName === selectedDataset ? "selected" : ""}>
       ${escapeHTML(datasetName)}
     </option>
   `).join("");
-  const currentWorkflowDataset = selectedDataset ?? $("#datasetSelect").value;
+  const fallbackDataset = datasetNames[0] || "";
+  const currentWorkflowDataset =
+    selectedDataset ?? ($("#datasetSelect").value || fallbackDataset);
   const currentAnnotationDataset =
-    selectedDataset ?? $("#annotationDatasetSelect").value;
+    selectedDataset ?? ($("#annotationDatasetSelect").value || fallbackDataset);
   const currentCompareDataset = $("#compareDatasetSelect").value || "all";
 
   $("#datasetSelect").innerHTML = datasetOptions ||
@@ -265,7 +377,7 @@ function renderDatasetOptions(selectedDataset) {
   updateOverviewDataset();
 }
 
-$("#createDatasetButton").addEventListener("click", () => {
+$("#createDatasetButton").addEventListener("click", async () => {
   const datasetName = window.prompt("請輸入新的 Dataset 名稱：")?.trim();
   if (datasetName === undefined) return;
   if (!datasetName || datasetName.length > 60) {
@@ -273,9 +385,7 @@ $("#createDatasetButton").addEventListener("click", () => {
     return;
   }
 
-  if (Object.keys(videoData).some(
-    (name) => name.toLowerCase() === datasetName.toLowerCase()
-  )) {
+  if (datasetNamesContain(datasetName)) {
     showToast("這個 Dataset 名稱已存在，請改用其他名稱。");
     return;
   }
@@ -285,21 +395,46 @@ $("#createDatasetButton").addEventListener("click", () => {
     return;
   }
 
-  videoData[datasetName] = [];
-  renderDatasetOptions(datasetName);
-  selectedVideoId = null;
-  annotationDirty = false;
-  renderVideoList();
-  renderSelectedVideo();
-  renderComparison();
-  showToast(`已建立 Dataset「${datasetName}」。`);
+  const button = $("#createDatasetButton");
+  button.disabled = true;
+  try {
+    const dataset = await datasetApiRequest("datasets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: datasetName })
+    });
+    datasetRecords.set(dataset.name, dataset);
+    videoData[dataset.name] = [];
+    renderDatasetOptions(dataset.name);
+    selectedVideoId = null;
+    annotationDirty = false;
+    renderVideoList();
+    renderSelectedVideo();
+    renderComparison();
+    showToast(`已建立 Dataset「${dataset.name}」。`);
+  } catch (error) {
+    handleDatasetApiError("建立 Dataset 失敗", error);
+  } finally {
+    button.disabled = false;
+  }
 });
 
-$("#addVideoButton").addEventListener("click", () => {
+function datasetNamesContain(datasetName) {
+  return Array.from(datasetRecords.keys()).some(
+    (name) => name.toLowerCase() === datasetName.toLowerCase()
+  );
+}
+
+$("#addVideoButton").addEventListener("click", async () => {
   const datasetName = $("#annotationDatasetSelect").value;
   if (!datasetName || !Object.hasOwn(videoData, datasetName)) {
     showToast("請先建立並選擇 Dataset。");
     $("#annotationDatasetSelect").focus();
+    return;
+  }
+  const dataset = datasetRecords.get(datasetName);
+  if (!dataset) {
+    showToast("無法找到目前 Dataset，請重新載入清單。");
     return;
   }
 
@@ -314,34 +449,48 @@ $("#addVideoButton").addEventListener("click", () => {
     return;
   }
 
-  const currentVideos = getCurrentVideoList();
-  if (currentVideos.some((video) => video.youtubeId === youtubeId)) {
-    showToast("這部影片已存在於目前的 Dataset。");
-    return;
+  const button = $("#addVideoButton");
+  button.disabled = true;
+  try {
+    const result = await datasetApiRequest(
+      `datasets/${dataset.id}/videos`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: youtubeUrl })
+      }
+    );
+    const video = videoFromApi(result);
+    videoData[datasetName].push(video);
+    $("#newVideoUrl").value = "";
+    if ($("#annotationDatasetSelect").value === datasetName) {
+      selectedVideoId = video.id;
+      annotationDirty = false;
+      renderVideoList();
+      renderSelectedVideo();
+    }
+    renderComparison();
+    showToast("已將 YouTube 影片新增至目前的 Dataset。");
+  } catch (error) {
+    handleDatasetApiError("新增影片失敗", error);
+  } finally {
+    button.disabled = false;
   }
-
-  const video = {
-    id: `youtube-${youtubeId}`,
-    title: `YouTube 影片 ${youtubeId}`,
-    youtubeId,
-    url: `https://www.youtube.com/watch?v=${youtubeId}`,
-    duration: "未知",
-    timestamps: []
-  };
-  currentVideos.push(video);
-  selectedVideoId = video.id;
-  annotationDirty = false;
-  $("#newVideoUrl").value = "";
-  renderVideoList();
-  renderSelectedVideo();
-  showToast("已將 YouTube 影片新增至目前的 Dataset。");
 });
 
-$("#annotationDatasetSelect").addEventListener("change", () => {
-  selectedVideoId = getCurrentVideoList()[0]?.id || null;
+$("#annotationDatasetSelect").addEventListener("change", async () => {
+  const dataset = datasetRecords.get($("#annotationDatasetSelect").value);
+  selectedVideoId = null;
   annotationDirty = false;
   renderVideoList();
   renderSelectedVideo();
+  if (!dataset) return;
+
+  try {
+    await loadDatasetVideos(dataset);
+  } catch (error) {
+    handleDatasetApiError("讀取 Dataset 影片失敗", error);
+  }
 });
 
 $("#addTimestampButton").addEventListener("click", () => {
@@ -365,7 +514,7 @@ $("#addTimestampButton").addEventListener("click", () => {
   }
 });
 
-$("#saveAnnotationButton").addEventListener("click", () => {
+$("#saveAnnotationButton").addEventListener("click", async () => {
   const video = getSelectedVideo();
   if (!video) return;
 
@@ -376,14 +525,31 @@ $("#saveAnnotationButton").addEventListener("click", () => {
     }
   }
 
-  sortTimestamps(video.timestamps);
-  annotationDirty = false;
+  const timestamps = video.timestamps.map(timestampToSeconds);
+  if (timestamps.some((timestamp) => timestamp > 2_147_483_647)) {
+    showToast("時間點超出可儲存範圍。");
+    return;
+  }
 
-  renderSelectedVideo();
-  renderVideoList();
-
-  showToast(
-    "標註已更新於目前頁面記憶體；重新整理後不會保留。"
-  );
+  const button = $("#saveAnnotationButton");
+  button.disabled = true;
+  try {
+    const result = await datasetApiRequest(
+      `videos/${video.id}/timestamps`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timestamps })
+      }
+    );
+    video.timestamps = result.timestamps.map(formatSeconds);
+    annotationDirty = false;
+    renderSelectedVideo();
+    renderVideoList();
+    showToast("Ground Truth 已儲存。");
+  } catch (error) {
+    handleDatasetApiError("儲存 Ground Truth 失敗", error);
+  } finally {
+    button.disabled = false;
+  }
 });
-
