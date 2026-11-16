@@ -1,0 +1,266 @@
+/* Responsive */
+
+@media (min-width: 1600px) {
+  :root {
+    --sidebar-width: 310px;
+  }
+
+  .page-content {
+    padding: 42px 48px 60px;
+  }
+
+  .workflow-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 460px);
+    gap: 30px;
+  }
+
+  .workflow-canvas {
+    padding: 36px 32px;
+  }
+
+  .workflow-module {
+    min-height: 132px;
+    padding: 26px;
+  }
+
+  .workflow-connector {
+    height: 45px;
+  }
+}
+
+@media (max-width: 1250px) {
+  .workflow-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inspector {
+    position: static;
+  }
+
+  .annotation-layout {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+
+  .toolbar-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .version-field {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 950px) {
+  :root {
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 76px;
+  }
+
+  .topbar {
+    padding: 18px 26px;
+  }
+
+  .page-content {
+    padding: 28px 24px 44px;
+  }
+
+  .annotation-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dataset-toolbar,
+  .compare-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compare-toolbar .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  :root {
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 0px;
+    --header-height: 82px;
+  }
+
+  .sidebar {
+    box-shadow: 8px 0 28px rgb(23 33 58 / 15%);
+  }
+
+  body.sidebar-collapsed .sidebar {
+    border-right: 0;
+  }
+
+  .sidebar-toggle {
+    top: 20px;
+    left: calc(var(--sidebar-width) - 19px);
+  }
+
+  body.sidebar-collapsed .sidebar-toggle {
+    left: 12px;
+    border-radius: 9px;
+  }
+
+  .topbar {
+    padding: 17px 18px 17px 56px;
+    gap: 10px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .breadcrumb {
+    font-size: 12px;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .workspace-status {
+    display: none;
+  }
+
+  .topbar-actions .btn {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .page-content {
+    padding: 24px 14px 36px;
+  }
+
+  .page-intro {
+    flex-direction: column;
+  }
+
+  .large-title {
+    font-size: 25px !important;
+  }
+
+  .page-description {
+    font-size: 14px;
+  }
+
+  .dataset-create-panel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .dataset-toolbar {
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .video-list-panel,
+  .annotation-panel {
+    padding: 19px;
+  }
+
+  .card {
+    padding: 19px;
+  }
+
+  .card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toolbar-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .version-field {
+    grid-column: auto;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-start;
+  }
+
+  .workflow-canvas {
+    padding: 14px;
+  }
+
+  .workflow-module {
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .module-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 23px;
+  }
+
+  .module-name {
+    font-size: 16px;
+  }
+
+  .module-description {
+    font-size: 13px;
+  }
+
+  .module-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .workflow-connector {
+    height: 30px;
+  }
+
+  .timestamp-heading {
+    flex-direction: column;
+  }
+
+  .timestamp-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .annotation-video-header {
+    flex-direction: column;
+  }
+
+  .annotation-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .history-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chart-row {
+    grid-template-columns: minmax(0, 1fr) 52px;
+    gap: 10px;
+  }
+
+  .chart-label {
+    grid-column: 1 / -1;
+  }
+
+  .chart-track {
+    grid-column: 1;
+  }
+
+  .chart-value {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .placeholder {
+    min-height: 340px;
+    padding: 28px 20px;
+  }
+}

@@ -9,8 +9,17 @@
     content="AutOutline Lab - 影片分析實驗與參數比較平台"
   >
   <title>AutOutline Lab | 實驗平台</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js?v=3" defer></script>
+  <link rel="stylesheet" href="style.css?v=5">
+  <!-- Classic scripts share the app state; keep this defer order. -->
+  <script src="js/shared.js?v=4" defer></script>
+  <script src="js/auth.js?v=4" defer></script>
+  <script src="js/navigation.js?v=4" defer></script>
+  <script src="js/workflow.js?v=4" defer></script>
+  <script src="js/experiments.js?v=4" defer></script>
+  <script src="js/dataset.js?v=4" defer></script>
+  <script src="js/comparison.js?v=4" defer></script>
+  <script src="js/history.js?v=4" defer></script>
+  <script src="script.js?v=4" defer></script>
 </head>
 
 <body>
