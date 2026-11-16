@@ -9,6 +9,7 @@ let selectedVideoId = null;
 let annotationDirty = false;
 let datasetLoadVersion = 0;
 let datasetVideosLoadVersion = 0;
+let addingVideo = false;
 
 function datasetApiUrl(path) {
   return new URL(`api/${path}`, window.location.href);
@@ -131,17 +132,25 @@ function renderVideoList() {
 
   $("#videoList").innerHTML = videos.length
     ? videos.map((video) => `
-      <button
-        type="button"
-        class="video-item ${video.id === selectedVideoId ? "active" : ""}"
-        data-video-id="${escapeHTML(video.id)}"
-      >
-        <div class="video-item-title">${escapeHTML(video.title)}</div>
-        <div class="video-item-meta">
-          時長 ${escapeHTML(video.duration)}
-          · ${video.timestamps.length} 個時間點
-        </div>
-      </button>
+      <div class="video-item-row ${video.id === selectedVideoId ? "active" : ""}">
+        <button
+          type="button"
+          class="video-item ${video.id === selectedVideoId ? "active" : ""}"
+          data-video-id="${escapeHTML(video.id)}"
+        >
+          <div class="video-item-title">${escapeHTML(video.title)}</div>
+          <div class="video-item-meta">
+            時長 ${escapeHTML(video.duration)}
+            · ${video.timestamps.length} 個時間點
+          </div>
+        </button>
+        <button
+          type="button"
+          class="btn btn-small btn-danger remove-video"
+          data-video-id="${escapeHTML(video.id)}"
+          aria-label="從目前 Dataset 刪除 ${escapeHTML(video.title)}"
+        >刪除</button>
+      </div>
     `).join("")
     : `<div class="timestamp-empty">目前沒有影片，請新增 YouTube 影片。</div>`;
 
@@ -151,6 +160,46 @@ function renderVideoList() {
       annotationDirty = false;
       renderVideoList();
       renderSelectedVideo();
+    });
+  });
+
+  $$(".remove-video").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const videoId = Number(button.dataset.videoId);
+      const video = videos.find((item) => item.id === videoId);
+      const datasetName = $("#annotationDatasetSelect").value;
+      const dataset = datasetRecords.get(datasetName);
+      if (!video || !dataset) return;
+      const unsavedWarning =
+        selectedVideoId === video.id && annotationDirty
+          ? "目前尚未儲存的時間點修改也會一起丟失。"
+          : "";
+      if (!window.confirm(
+        `確定要從「${datasetName}」移除「${video.title}」嗎？${unsavedWarning}`
+      )) {
+        return;
+      }
+
+      button.disabled = true;
+      try {
+        await datasetApiRequest(
+          `datasets/${dataset.id}/videos/${video.id}`,
+          { method: "DELETE" }
+        );
+        const index = videos.findIndex((item) => item.id === video.id);
+        if (index >= 0) videos.splice(index, 1);
+        if (selectedVideoId === video.id) {
+          selectedVideoId = videos[0]?.id || null;
+          annotationDirty = false;
+        }
+        renderVideoList();
+        renderSelectedVideo();
+        renderComparison();
+        showToast("已從目前 Dataset 移除影片；影片標註仍保留。");
+      } catch (error) {
+        handleDatasetApiError("移除影片失敗", error);
+        button.disabled = false;
+      }
     });
   });
 }
@@ -223,56 +272,111 @@ function renderTimestampRows(video) {
       </div>
     `;
   } else {
-    $("#timestampList").innerHTML = timestamps.map((timestamp, index) => `
-      <div class="timestamp-row" data-timestamp-index="${index}">
-        <span class="timestamp-number">
-          時間點 ${String(index + 1).padStart(2, "0")}
-        </span>
-        <input
-          class="input timestamp-input"
-          type="text"
-          inputmode="numeric"
-          aria-label="時間點 ${index + 1}"
-          placeholder="HH:MM:SS"
-          value="${escapeHTML(timestamp)}"
-          data-index="${index}"
-        >
-        <button
-          class="btn btn-small btn-danger remove-timestamp"
-          type="button"
-          data-index="${index}"
-        >刪除</button>
-      </div>
-    `).join("");
+    $("#timestampList").innerHTML = timestamps.map((timestamp, index) => {
+      const [hours = "", minutes = "", seconds = ""] = timestamp.split(":");
+      return `
+        <div class="timestamp-row" data-timestamp-index="${index}">
+          <span class="timestamp-number">
+            時間點 ${String(index + 1).padStart(2, "0")}
+          </span>
+          <div class="timestamp-input-group" role="group"
+            aria-label="時間點 ${index + 1}，時分秒">
+            <input
+              class="input timestamp-part"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              aria-label="小時"
+              placeholder="HH"
+              maxlength="2"
+              value="${escapeHTML(hours)}"
+              data-index="${index}"
+              data-part="0"
+            >
+            <span class="timestamp-separator" aria-hidden="true">:</span>
+            <input
+              class="input timestamp-part"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              aria-label="分鐘"
+              placeholder="MM"
+              maxlength="2"
+              value="${escapeHTML(minutes)}"
+              data-index="${index}"
+              data-part="1"
+            >
+            <span class="timestamp-separator" aria-hidden="true">:</span>
+            <input
+              class="input timestamp-part"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              aria-label="秒"
+              placeholder="SS"
+              maxlength="2"
+              value="${escapeHTML(seconds)}"
+              data-index="${index}"
+              data-part="2"
+            >
+          </div>
+          <button
+            class="btn btn-small btn-danger remove-timestamp"
+            type="button"
+            data-index="${index}"
+          >刪除</button>
+        </div>
+      `;
+    }).join("");
   }
 
   $("#timestampSummary").textContent =
     `共 ${timestamps.length} 個 Ground Truth 時間點`;
 
-  $$(".timestamp-input").forEach((input) => {
-    input.addEventListener("change", () => {
+  $$(".timestamp-part").forEach((input) => {
+    input.addEventListener("input", () => {
       const index = Number(input.dataset.index);
-      const value = input.value.trim();
+      const part = Number(input.dataset.part);
+      input.value = input.value.replace(/\D/g, "").slice(0, 2);
+      const row = input.closest(".timestamp-row");
+      const parts = $$(".timestamp-part", row);
+      video.timestamps[index] = parts.map((field) => field.value).join(":");
+      markAnnotationDirty();
 
+      if (input.value.length === 2 && part < parts.length - 1) {
+        parts[part + 1].focus();
+      }
+    });
+
+    input.addEventListener("keydown", (event) => {
+      const part = Number(input.dataset.part);
+      if (event.key === "Backspace" && !input.value && part > 0) {
+        const previous = input.closest(".timestamp-row")
+          .querySelectorAll(".timestamp-part")[part - 1];
+        previous.focus();
+      }
+    });
+
+    input.addEventListener("change", () => {
+      const value = video.timestamps[Number(input.dataset.index)];
+      if (!value || value.split(":").some((part) => part.length !== 2)) return;
       if (!isValidTimestamp(value)) {
-        showToast("時間格式需為 HH:MM:SS，例如 00:03:25。");
+        showToast("分鐘和秒鐘需介於 00 至 59。");
         input.focus();
         return;
       }
-
       if (video.timestamps.some((timestamp, timestampIndex) =>
-        timestampIndex !== index &&
+        timestampIndex !== Number(input.dataset.index) &&
+        isValidTimestamp(timestamp) &&
         timestampToSeconds(timestamp) === timestampToSeconds(value)
       )) {
         showToast("同一支影片不能有重複的切換時間點。");
         input.focus();
         return;
       }
-
-      video.timestamps[index] = value;
       sortTimestamps(video.timestamps);
-      markAnnotationDirty();
       renderTimestampRows(video);
+      renderVideoList();
     });
   });
 
@@ -289,10 +393,7 @@ function renderTimestampRows(video) {
 }
 
 function isValidTimestamp(value) {
-  const match = value.match(/^(\d{2,}):([0-5]\d):([0-5]\d)$/);
-  if (!match) return false;
-
-  return true;
+  return /^\d{2}:[0-5]\d:[0-5]\d$/.test(value);
 }
 
 function timestampToSeconds(timestamp) {
@@ -426,6 +527,8 @@ function datasetNamesContain(datasetName) {
 }
 
 $("#addVideoButton").addEventListener("click", async () => {
+  if (addingVideo) return;
+
   const datasetName = $("#annotationDatasetSelect").value;
   if (!datasetName || !Object.hasOwn(videoData, datasetName)) {
     showToast("請先建立並選擇 Dataset。");
@@ -449,7 +552,21 @@ $("#addVideoButton").addEventListener("click", async () => {
     return;
   }
 
+  const existingVideo = videoData[datasetName].find(
+    (video) => video.youtubeId === youtubeId
+  );
+  if (existingVideo) {
+    $("#newVideoUrl").value = "";
+    selectedVideoId = existingVideo.id;
+    annotationDirty = false;
+    renderVideoList();
+    renderSelectedVideo();
+    showToast("這部影片已存在於目前的 Dataset。");
+    return;
+  }
+
   const button = $("#addVideoButton");
+  addingVideo = true;
   button.disabled = true;
   try {
     const result = await datasetApiRequest(
@@ -461,7 +578,15 @@ $("#addVideoButton").addEventListener("click", async () => {
       }
     );
     const video = videoFromApi(result);
-    videoData[datasetName].push(video);
+    const currentVideos = videoData[datasetName];
+    const existingIndex = currentVideos.findIndex(
+      (item) => item.id === video.id || item.youtubeId === video.youtubeId
+    );
+    if (existingIndex >= 0) {
+      currentVideos[existingIndex] = video;
+    } else {
+      currentVideos.push(video);
+    }
     $("#newVideoUrl").value = "";
     if ($("#annotationDatasetSelect").value === datasetName) {
       selectedVideoId = video.id;
@@ -474,6 +599,7 @@ $("#addVideoButton").addEventListener("click", async () => {
   } catch (error) {
     handleDatasetApiError("新增影片失敗", error);
   } finally {
+    addingVideo = false;
     button.disabled = false;
   }
 });
@@ -505,12 +631,12 @@ $("#addTimestampButton").addEventListener("click", () => {
   renderTimestampRows(video);
   renderVideoList();
 
-  const inputs = $$(".timestamp-input");
-  const lastInput = inputs[inputs.length - 1];
+  const inputs = $$(".timestamp-part");
+  const firstInput = inputs[inputs.length - 3];
 
-  if (lastInput) {
-    lastInput.focus();
-    lastInput.select();
+  if (firstInput) {
+    firstInput.focus();
+    firstInput.select();
   }
 });
 
@@ -520,12 +646,16 @@ $("#saveAnnotationButton").addEventListener("click", async () => {
 
   for (const timestamp of video.timestamps) {
     if (!isValidTimestamp(timestamp)) {
-      showToast("有無效的時間格式，請先修正。");
+      showToast("請完成每個時間點的 HH、MM、SS 輸入；分鐘和秒鐘需介於 00 至 59。");
       return;
     }
   }
 
   const timestamps = video.timestamps.map(timestampToSeconds);
+  if (new Set(timestamps).size !== timestamps.length) {
+    showToast("同一支影片不能有重複的切換時間點。");
+    return;
+  }
   if (timestamps.some((timestamp) => timestamp > 2_147_483_647)) {
     showToast("時間點超出可儲存範圍。");
     return;

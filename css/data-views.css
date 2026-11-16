@@ -155,8 +155,17 @@
   gap: 10px;
 }
 
+.video-item-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
 .video-item {
   width: 100%;
+  min-width: 0;
+  flex: 1;
   padding: 17px;
 
   border: 1px solid var(--border);
@@ -176,6 +185,16 @@
   border-color: var(--primary);
   background: var(--primary-light);
   box-shadow: 0 0 0 2px rgb(73 104 232 / 8%);
+}
+
+.remove-video {
+  display: none;
+  width: 100%;
+  justify-content: center;
+}
+
+.video-item-row.active .remove-video {
+  display: inline-flex;
 }
 
 .video-item-title {
@@ -263,7 +282,7 @@
 
 .timestamp-row {
   display: grid;
-  grid-template-columns: minmax(135px, 170px) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(110px, 150px) minmax(170px, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -272,6 +291,25 @@
   border-radius: 10px;
 
   background: #fbfcff;
+}
+
+.timestamp-input-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.timestamp-part {
+  width: 3.4em;
+  padding-right: 6px;
+  padding-left: 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.timestamp-separator {
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .timestamp-number {
@@ -450,4 +488,3 @@
   box-shadow: 0 8px 30px rgb(23 33 58 / 12%);
   font-size: 15px;
 }
-
