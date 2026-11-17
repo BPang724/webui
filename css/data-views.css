@@ -127,6 +127,42 @@
   margin: 5px 0 0;
 }
 
+.dataset-create-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dataset-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 60px rgb(23 33 58 / 24%);
+}
+
+.dataset-dialog::backdrop {
+  background: rgb(18 27 46 / 48%);
+}
+
+.dataset-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.dataset-dialog-content .section-title,
+.dataset-dialog-content .section-subtitle {
+  margin: 0;
+}
+
+.dataset-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .dataset-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(250px, 1.3fr) auto;

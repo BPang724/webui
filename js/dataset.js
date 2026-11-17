@@ -475,28 +475,46 @@ function renderDatasetOptions(selectedDataset) {
     datasetNames.includes(currentCompareDataset)
       ? currentCompareDataset
       : "all";
+  $("#deleteDatasetSelect").innerHTML = datasetNames.map((datasetName) => {
+    const dataset = datasetRecords.get(datasetName);
+    return `<option value="${escapeHTML(dataset.id)}">${escapeHTML(datasetName)}</option>`;
+  }).join("");
+  $("#deleteDatasetButton").disabled =
+    datasetNames.length === 0;
   updateOverviewDataset();
 }
 
-$("#createDatasetButton").addEventListener("click", async () => {
-  const datasetName = window.prompt("請輸入新的 Dataset 名稱：")?.trim();
-  if (datasetName === undefined) return;
+$("#createDatasetButton").addEventListener("click", () => {
+  $("#newDatasetName").value = "";
+  $("#createDatasetDialog").showModal();
+  $("#newDatasetName").focus();
+});
+
+$("#cancelCreateDatasetButton").addEventListener("click", () => {
+  $("#createDatasetDialog").close();
+});
+
+async function createDataset() {
+  const datasetName = $("#newDatasetName").value.trim();
   if (!datasetName || datasetName.length > 60) {
     showToast("請輸入 1 至 60 個字元的 Dataset 名稱。");
+    $("#newDatasetName").focus();
     return;
   }
 
   if (datasetNamesContain(datasetName)) {
     showToast("這個 Dataset 名稱已存在，請改用其他名稱。");
+    $("#newDatasetName").focus();
     return;
   }
 
   if (["__proto__", "constructor", "prototype"].includes(datasetName.toLowerCase())) {
     showToast("這個名稱無法使用，請改用其他 Dataset 名稱。");
+    $("#newDatasetName").focus();
     return;
   }
 
-  const button = $("#createDatasetButton");
+  const button = $("#confirmCreateDatasetButton");
   button.disabled = true;
   try {
     const dataset = await datasetApiRequest("datasets", {
@@ -512,12 +530,19 @@ $("#createDatasetButton").addEventListener("click", async () => {
     renderVideoList();
     renderSelectedVideo();
     renderComparison();
+    $("#createDatasetDialog").close();
     showToast(`已建立 Dataset「${dataset.name}」。`);
   } catch (error) {
     handleDatasetApiError("建立 Dataset 失敗", error);
   } finally {
     button.disabled = false;
   }
+}
+
+$("#confirmCreateDatasetButton").addEventListener("click", createDataset);
+$("#createDatasetForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  createDataset();
 });
 
 function datasetNamesContain(datasetName) {
@@ -525,6 +550,67 @@ function datasetNamesContain(datasetName) {
     (name) => name.toLowerCase() === datasetName.toLowerCase()
   );
 }
+
+$("#deleteDatasetButton").addEventListener("click", async () => {
+  if (datasetRecords.size === 0) {
+    showToast("目前沒有可刪除的 Dataset。");
+    return;
+  }
+
+  $("#deleteDatasetDialog").showModal();
+});
+
+$("#cancelDeleteDatasetButton").addEventListener("click", () => {
+  $("#deleteDatasetDialog").close();
+});
+
+$("#confirmDeleteDatasetButton").addEventListener("click", async () => {
+  const datasetId = Number($("#deleteDatasetSelect").value);
+  const selectedEntry = Array.from(datasetRecords.entries()).find(
+    ([, dataset]) => dataset.id === datasetId
+  );
+  if (!selectedEntry) {
+    showToast("請選擇要刪除的 Dataset。");
+    return;
+  }
+  const [datasetName, dataset] = selectedEntry;
+  if (!window.confirm(
+    `確定要刪除 Dataset「${datasetName}」嗎？此操作無法復原。`
+  )) {
+    return;
+  }
+
+  const button = $("#deleteDatasetButton");
+  button.disabled = true;
+  try {
+    await datasetApiRequest(`datasets/${dataset.id}`, { method: "DELETE" });
+    datasetRecords.delete(datasetName);
+    delete videoData[datasetName];
+    $("#deleteDatasetDialog").close();
+    datasetVideosLoadVersion += 1;
+    selectedVideoId = null;
+    annotationDirty = false;
+
+    const nextDatasetName = Array.from(datasetRecords.keys())[0] || "";
+    renderDatasetOptions(nextDatasetName);
+    renderVideoList();
+    renderSelectedVideo();
+    renderComparison();
+    showToast(`已刪除 Dataset「${datasetName}」。`);
+
+    const nextDataset = datasetRecords.get(nextDatasetName);
+    if (nextDataset) {
+      try {
+        await loadDatasetVideos(nextDataset);
+      } catch (error) {
+        handleDatasetApiError("讀取 Dataset 影片失敗", error);
+      }
+    }
+  } catch (error) {
+    handleDatasetApiError("刪除 Dataset 失敗", error);
+    button.disabled = datasetRecords.size === 0;
+  }
+});
 
 $("#addVideoButton").addEventListener("click", async () => {
   if (addingVideo) return;
@@ -606,6 +692,7 @@ $("#addVideoButton").addEventListener("click", async () => {
 
 $("#annotationDatasetSelect").addEventListener("change", async () => {
   const dataset = datasetRecords.get($("#annotationDatasetSelect").value);
+  $("#deleteDatasetButton").disabled = !dataset;
   selectedVideoId = null;
   annotationDirty = false;
   renderVideoList();

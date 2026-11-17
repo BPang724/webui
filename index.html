@@ -493,12 +493,17 @@
 
           <section class="card dataset-create-panel">
             <div>
-              <h3 class="section-title">新增 Dataset</h3>
-              <p class="section-subtitle">先建立播放清單，再從下方選擇清單新增影片。</p>
+              <h3 class="section-title">Dataset 管理</h3>
+              <p class="section-subtitle">建立 Dataset，或刪除不再使用的清單；請在下方選擇 Dataset 並管理影片。</p>
             </div>
-            <button class="btn btn-primary" id="createDatasetButton" type="button">
-              ＋ 新增 Dataset
-            </button>
+            <div class="dataset-create-actions">
+              <button class="btn btn-primary" id="createDatasetButton" type="button">
+                ＋ 新增 Dataset
+              </button>
+              <button class="btn btn-danger" id="deleteDatasetButton" type="button" disabled>
+                刪除 Dataset
+              </button>
+            </div>
           </section>
 
           <div class="card dataset-toolbar">
@@ -733,6 +738,50 @@
       </div>
     </main>
   </div>
+
+  <dialog class="dataset-dialog" id="createDatasetDialog">
+    <form method="dialog" class="dataset-dialog-content" id="createDatasetForm">
+      <h3 class="section-title">新增 Dataset</h3>
+      <p class="section-subtitle">請輸入新的 Dataset 名稱（最多 60 個字元）。</p>
+      <div class="form-field">
+        <label for="newDatasetName">Dataset 名稱</label>
+        <input
+          class="input"
+          id="newDatasetName"
+          type="text"
+          maxlength="60"
+          required
+          autocomplete="off"
+          placeholder="例如：lecture-slides-2026"
+        >
+      </div>
+      <div class="dataset-dialog-actions">
+        <button class="btn" id="cancelCreateDatasetButton" type="button">取消</button>
+        <button class="btn btn-primary" id="confirmCreateDatasetButton" type="button">
+          建立 Dataset
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="dataset-dialog" id="deleteDatasetDialog">
+    <form method="dialog" class="dataset-dialog-content">
+      <h3 class="section-title">刪除 Dataset</h3>
+      <p class="section-subtitle">
+        選擇要刪除的 Dataset。只會移除 Dataset 及其影片關聯，不會刪除共用影片或 Ground Truth。
+      </p>
+      <div class="form-field">
+        <label for="deleteDatasetSelect">Dataset</label>
+        <select class="select" id="deleteDatasetSelect" required></select>
+      </div>
+      <div class="dataset-dialog-actions">
+        <button class="btn" id="cancelDeleteDatasetButton" type="button">取消</button>
+        <button class="btn btn-danger" id="confirmDeleteDatasetButton" type="button">
+          確認刪除
+        </button>
+      </div>
+    </form>
+  </dialog>
 
   <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 </body>
