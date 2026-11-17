@@ -12,6 +12,14 @@ let datasetVideosLoadVersion = 0;
 let addingVideo = false;
 let datasetListLoaded = false;
 let datasetListPromise = null;
+let youtubeApiPromise = null;
+let youtubePlayer = null;
+let youtubePlayerVideoId = null;
+let youtubePlayerReady = false;
+let youtubePlayerGeneration = 0;
+let renderedPreviewVideoId = null;
+const persistedTimestamps = new Map();
+const timestampSavesInProgress = new Set();
 
 function datasetApiUrl(path) {
   return new URL(`api/${path}`, window.location.href);
@@ -51,7 +59,7 @@ function formatSeconds(value) {
 }
 
 function videoFromApi(video) {
-  return {
+  const result = {
     id: video.id,
     title: video.title || `YouTube 影片 ${video.youtube_id}`,
     youtubeId: video.youtube_id,
@@ -62,6 +70,8 @@ function videoFromApi(video) {
     durationSeconds: video.duration_seconds,
     timestamps: video.ground_truth_timestamps.map(formatSeconds)
   };
+  persistedTimestamps.set(result.id, [...result.timestamps]);
+  return result;
 }
 
 async function loadDatasetList() {
@@ -144,6 +154,171 @@ function markAnnotationDirty() {
   $("#annotationStatus").className = "badge badge-warning";
 }
 
+function renderAnnotationStatus(video) {
+  const isSaving = timestampSavesInProgress.has(video.id);
+  $("#annotationStatus").textContent = isSaving
+    ? "儲存中..."
+    : annotationDirty
+      ? "尚未儲存"
+      : "已儲存";
+  $("#annotationStatus").className = isSaving || annotationDirty
+    ? "badge badge-warning"
+    : "badge badge-success";
+}
+
+function restorePersistedTimestamps(video) {
+  video.timestamps = [...(persistedTimestamps.get(video.id) || [])];
+  if (selectedVideoId === video.id) {
+    annotationDirty = false;
+    renderSelectedVideo();
+  }
+  renderVideoList();
+}
+
+async function saveVideoTimestamps(video, timestamps) {
+  if (timestampSavesInProgress.has(video.id)) return false;
+  if (timestamps.some((timestamp) => !Number.isInteger(timestamp) || timestamp < 0)) {
+    showToast("時間點格式錯誤，無法儲存。");
+    restorePersistedTimestamps(video);
+    return false;
+  }
+  if (new Set(timestamps).size !== timestamps.length) {
+    showToast("同一支影片不能有重複的切換時間點。");
+    restorePersistedTimestamps(video);
+    return false;
+  }
+  if (timestamps.some((timestamp) => timestamp > 2_147_483_647)) {
+    showToast("時間點超出可儲存範圍。");
+    restorePersistedTimestamps(video);
+    return false;
+  }
+
+  timestampSavesInProgress.add(video.id);
+  if (selectedVideoId === video.id) {
+    renderAnnotationStatus(video);
+    $("#recordTimestampButton").disabled = true;
+    $$(".timestamp-part").forEach((input) => { input.disabled = true; });
+    $$(".remove-timestamp").forEach((button) => { button.disabled = true; });
+  }
+
+  try {
+    const result = await datasetApiRequest(
+      `videos/${video.id}/timestamps`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timestamps })
+      }
+    );
+    video.timestamps = result.timestamps.map(formatSeconds);
+    persistedTimestamps.set(video.id, [...video.timestamps]);
+    if (selectedVideoId === video.id) {
+      annotationDirty = false;
+      renderSelectedVideo();
+      showToast("Ground Truth 已自動儲存。");
+    }
+    renderVideoList();
+    return true;
+  } catch (error) {
+    restorePersistedTimestamps(video);
+    handleDatasetApiError("儲存 Ground Truth 失敗", error);
+    return false;
+  } finally {
+    timestampSavesInProgress.delete(video.id);
+    if (selectedVideoId === video.id) {
+      renderAnnotationStatus(video);
+      $("#recordTimestampButton").disabled = !youtubePlayerReady ||
+        youtubePlayerVideoId !== video.id;
+    }
+  }
+}
+
+function loadYouTubeIframeApi() {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise((resolve, reject) => {
+    const previousCallback = window.onYouTubeIframeAPIReady;
+    const script = document.querySelector(
+      'script[src="https://www.youtube.com/iframe_api"]'
+    ) || document.createElement("script");
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error("等待 YouTube 播放器 API 逾時。"));
+    }, 15000);
+
+    window.onYouTubeIframeAPIReady = () => {
+      window.clearTimeout(timeoutId);
+      resolve(window.YT);
+      if (typeof previousCallback === "function") previousCallback();
+    };
+
+    script.addEventListener("error", () => {
+      window.clearTimeout(timeoutId);
+      reject(new Error("無法載入 YouTube 播放器 API。"));
+    }, { once: true });
+
+    if (!script.src) {
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.append(script);
+    }
+  });
+
+  return youtubeApiPromise;
+}
+
+function destroyYouTubePlayer() {
+  youtubePlayerGeneration += 1;
+  youtubePlayerVideoId = null;
+  youtubePlayerReady = false;
+  $("#recordTimestampButton").disabled = true;
+  if (youtubePlayer) {
+    youtubePlayer.destroy();
+    youtubePlayer = null;
+  }
+}
+
+async function initializeYouTubePlayer(video) {
+  destroyYouTubePlayer();
+  const generation = youtubePlayerGeneration;
+  youtubePlayerVideoId = video.id;
+
+  try {
+    const youtube = await loadYouTubeIframeApi();
+    if (
+      generation !== youtubePlayerGeneration ||
+      !document.getElementById("youtubePlayer")
+    ) {
+      return;
+    }
+
+    youtubePlayer = new youtube.Player("youtubePlayer", {
+      events: {
+        onReady: () => {
+          if (
+            generation === youtubePlayerGeneration &&
+            selectedVideoId === video.id
+          ) {
+            youtubePlayerReady = true;
+            $("#recordTimestampButton").disabled = false;
+          }
+        },
+        onError: (event) => {
+          if (generation !== youtubePlayerGeneration) return;
+          youtubePlayerReady = false;
+          $("#recordTimestampButton").disabled = true;
+          console.error("YouTube 播放器錯誤", event.data);
+          showToast("YouTube 影片無法播放，請確認影片允許嵌入。");
+        }
+      }
+    });
+  } catch (error) {
+    if (generation !== youtubePlayerGeneration) return;
+    console.error("初始化 YouTube 播放器失敗", error);
+    showToast("無法載入 YouTube 播放器，請稍後重試或重新整理頁面。");
+  }
+}
+
 function renderVideoList() {
   const videos = getCurrentVideoList();
   const videoSelect = $("#videoList");
@@ -210,6 +385,8 @@ function renderSelectedVideo() {
   const preview = $("#page-dataset .video-preview");
 
   if (!video) {
+    destroyYouTubePlayer();
+    renderedPreviewVideoId = null;
     const hasDataset = Boolean($("#annotationDatasetSelect").value);
     $("#selectedVideoTitle").textContent = "尚未選取影片";
     $("#selectedVideoMeta").textContent = hasDataset
@@ -234,12 +411,15 @@ function renderSelectedVideo() {
   $("#selectedVideoTitle").textContent = video.title;
   $("#selectedVideoMeta").textContent =
     `${$("#annotationDatasetSelect").value} · 影片長度 ${video.duration}`;
-  if (video.youtubeId) {
+  if (video.youtubeId && renderedPreviewVideoId !== video.id) {
+    destroyYouTubePlayer();
+    renderedPreviewVideoId = video.id;
     preview.className = "video-preview video-preview-playing";
     preview.innerHTML = `
       <div class="youtube-embed">
         <iframe
-          src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.youtubeId)}"
+          id="youtubePlayer"
+          src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.youtubeId)}?enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&playsinline=1"
           title="${escapeHTML(video.title)}"
           loading="lazy"
           referrerpolicy="strict-origin-when-cross-origin"
@@ -248,7 +428,10 @@ function renderSelectedVideo() {
         ></iframe>
       </div>
     `;
-  } else {
+    initializeYouTubePlayer(video);
+  } else if (!video.youtubeId && renderedPreviewVideoId !== video.id) {
+    destroyYouTubePlayer();
+    renderedPreviewVideoId = video.id;
     preview.className = "video-preview";
     preview.innerHTML = `
       <div class="preview-icon">▶</div>
@@ -259,13 +442,7 @@ function renderSelectedVideo() {
     `;
   }
 
-  $("#annotationStatus").textContent = annotationDirty
-    ? "尚未儲存"
-    : "已儲存";
-
-  $("#annotationStatus").className = annotationDirty
-    ? "badge badge-warning"
-    : "badge badge-success";
+  renderAnnotationStatus(video);
 
   renderTimestampRows(video);
 }
@@ -276,7 +453,7 @@ function renderTimestampRows(video) {
   if (!timestamps.length) {
     $("#timestampList").innerHTML = `
       <div class="timestamp-empty">
-        目前沒有時間點，請點選「新增時間點」。
+        目前沒有時間點，播放至切換位置後點選「記錄目前播放時間」。
       </div>
     `;
   } else {
@@ -379,23 +556,55 @@ function renderTimestampRows(video) {
         timestampToSeconds(timestamp) === timestampToSeconds(value)
       )) {
         showToast("同一支影片不能有重複的切換時間點。");
-        input.focus();
+        restorePersistedTimestamps(video);
         return;
       }
       sortTimestamps(video.timestamps);
-      renderTimestampRows(video);
-      renderVideoList();
+      saveVideoTimestamps(
+        video,
+        video.timestamps.map(timestampToSeconds)
+      );
+    });
+  });
+
+  $("#timestampList").querySelectorAll(".timestamp-row").forEach((row) => {
+    row.title = "點擊跳轉至影片中的此時間點";
+    row.addEventListener("click", (event) => {
+      if (event.target.closest(".remove-timestamp")) return;
+
+      const currentVideo = getSelectedVideo();
+      const timestamp = currentVideo?.timestamps[
+        Number(row.dataset.timestampIndex)
+      ];
+      if (!currentVideo || currentVideo.id !== video.id || !timestamp) return;
+      if (!isValidTimestamp(timestamp)) {
+        showToast("請先完成此時間點的 HH、MM、SS 輸入。");
+        return;
+      }
+      if (
+        !youtubePlayerReady ||
+        !youtubePlayer ||
+        youtubePlayerVideoId !== video.id
+      ) {
+        showToast("YouTube 播放器尚未就緒，請稍後再試。");
+        return;
+      }
+
+      youtubePlayer.seekTo(timestampToSeconds(timestamp), true);
     });
   });
 
   $$(".remove-timestamp").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const index = Number(button.dataset.index);
-
       video.timestamps.splice(index, 1);
       markAnnotationDirty();
       renderTimestampRows(video);
       renderVideoList();
+      await saveVideoTimestamps(
+        video,
+        video.timestamps.map(timestampToSeconds)
+      );
     });
   });
 }
@@ -725,67 +934,36 @@ $("#videoList").addEventListener("change", () => {
 
 $("#removeVideoButton").addEventListener("click", removeSelectedVideo);
 
-$("#addTimestampButton").addEventListener("click", () => {
+$("#recordTimestampButton").addEventListener("click", async () => {
   const video = getSelectedVideo();
-  if (!video) {
-    showToast("請先選擇影片。");
+  if (
+    !video ||
+    !youtubePlayer ||
+    youtubePlayerVideoId !== video.id ||
+    timestampSavesInProgress.has(video.id) ||
+    typeof youtubePlayer.getCurrentTime !== "function"
+  ) {
+    showToast("YouTube 播放器尚未就緒，請稍後再試。");
     return;
   }
 
-  video.timestamps.push("");
-  markAnnotationDirty();
-  renderTimestampRows(video);
-  renderVideoList();
-
-  const inputs = $$(".timestamp-part");
-  const firstInput = inputs[inputs.length - 3];
-
-  if (firstInput) {
-    firstInput.focus();
-    firstInput.select();
-  }
-});
-
-$("#saveAnnotationButton").addEventListener("click", async () => {
-  const video = getSelectedVideo();
-  if (!video) return;
-
-  for (const timestamp of video.timestamps) {
-    if (!isValidTimestamp(timestamp)) {
-      showToast("請完成每個時間點的 HH、MM、SS 輸入；分鐘和秒鐘需介於 00 至 59。");
-      return;
-    }
-  }
-
-  const timestamps = video.timestamps.map(timestampToSeconds);
-  if (new Set(timestamps).size !== timestamps.length) {
-    showToast("同一支影片不能有重複的切換時間點。");
-    return;
-  }
-  if (timestamps.some((timestamp) => timestamp > 2_147_483_647)) {
-    showToast("時間點超出可儲存範圍。");
+  const currentTime = Math.floor(youtubePlayer.getCurrentTime());
+  if (!Number.isFinite(currentTime) || currentTime < 0) {
+    showToast("目前無法讀取影片播放時間。");
     return;
   }
 
-  const button = $("#saveAnnotationButton");
-  button.disabled = true;
-  try {
-    const result = await datasetApiRequest(
-      `videos/${video.id}/timestamps`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timestamps })
-      }
-    );
-    video.timestamps = result.timestamps.map(formatSeconds);
-    annotationDirty = false;
-    renderSelectedVideo();
-    renderVideoList();
-    showToast("Ground Truth 已儲存。");
-  } catch (error) {
-    handleDatasetApiError("儲存 Ground Truth 失敗", error);
-  } finally {
-    button.disabled = false;
+  const timestamp = formatSeconds(currentTime);
+  if (video.timestamps.includes(timestamp)) {
+    showToast(`時間點 ${timestamp} 已經存在。`);
+    return;
   }
+
+  const timestamps = [...video.timestamps, timestamp]
+    .map(timestampToSeconds)
+    .sort((left, right) => left - right);
+  const saved = await saveVideoTimestamps(video, timestamps);
+  if (!saved) return;
+
+  $("#timestampList").scrollTop = $("#timestampList").scrollHeight;
 });

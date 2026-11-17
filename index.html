@@ -9,14 +9,14 @@
     content="AutOutline Lab - 影片分析實驗與參數比較平台"
   >
   <title>AutOutline Lab | 實驗平台</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <!-- Classic scripts share the app state; keep this defer order. -->
   <script src="js/shared.js?v=4" defer></script>
   <script src="js/auth.js?v=4" defer></script>
   <script src="js/navigation.js?v=4" defer></script>
   <script src="js/workflow.js?v=4" defer></script>
   <script src="js/experiments.js?v=4" defer></script>
-  <script src="js/dataset.js?v=4" defer></script>
+  <script src="js/dataset.js?v=6" defer></script>
   <script src="js/comparison.js?v=4" defer></script>
   <script src="js/history.js?v=4" defer></script>
   <script src="script.js?v=4" defer></script>
@@ -577,12 +577,12 @@
                   <div>
                     <h4 class="section-title">投影片切換時間點</h4>
                     <p class="section-subtitle">
-                      依序輸入小時、分鐘、秒鐘；每段輸入兩位數後會自動跳到下一段。
+                      記錄目前播放時間會立即儲存；修改或刪除時間點也會自動儲存。
                     </p>
                   </div>
 
-                  <button class="btn btn-primary" id="addTimestampButton" type="button">
-                    ＋ 新增時間點
+                  <button class="btn" id="recordTimestampButton" type="button" disabled>
+                    記錄目前播放時間
                   </button>
                 </div>
 
@@ -592,9 +592,6 @@
                   <div class="annotation-summary" id="timestampSummary">
                     共 0 個 Ground Truth 時間點
                   </div>
-                  <button class="btn btn-primary" id="saveAnnotationButton" type="button">
-                    儲存標註
-                  </button>
                 </div>
               </div>
             </div>
