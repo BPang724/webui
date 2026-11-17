@@ -37,10 +37,6 @@
     position: static;
   }
 
-  .annotation-layout {
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  }
-
   .toolbar-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -64,7 +60,7 @@
     padding: 28px 24px 44px;
   }
 
-  .annotation-layout {
+  .annotation-content-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -162,7 +158,26 @@
     padding: 18px;
   }
 
-  .video-list-panel,
+  .video-selector-panel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px;
+  }
+
+  .video-selector-controls {
+    justify-content: flex-start;
+  }
+
+  .video-selector-controls .select {
+    flex: 1;
+    max-width: none;
+  }
+
+  .video-selector-controls .btn {
+    flex: 0 0 auto;
+  }
+
   .annotation-panel {
     padding: 19px;
   }

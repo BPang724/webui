@@ -146,81 +146,63 @@ function markAnnotationDirty() {
 
 function renderVideoList() {
   const videos = getCurrentVideoList();
+  const videoSelect = $("#videoList");
+  const removeVideoButton = $("#removeVideoButton");
 
   $("#videoCount").textContent = `共 ${videos.length} 部影片`;
+  if (!videos.some((video) => video.id === selectedVideoId)) {
+    selectedVideoId = videos[0]?.id || null;
+  }
 
-  $("#videoList").innerHTML = videos.length
+  videoSelect.disabled = videos.length === 0;
+  videoSelect.innerHTML = videos.length
     ? videos.map((video) => `
-      <div class="video-item-row ${video.id === selectedVideoId ? "active" : ""}">
-        <button
-          type="button"
-          class="video-item ${video.id === selectedVideoId ? "active" : ""}"
-          data-video-id="${escapeHTML(video.id)}"
-        >
-          <div class="video-item-title">${escapeHTML(video.title)}</div>
-          <div class="video-item-meta">
-            時長 ${escapeHTML(video.duration)}
-            · ${video.timestamps.length} 個時間點
-          </div>
-        </button>
-        <button
-          type="button"
-          class="btn btn-small btn-danger remove-video"
-          data-video-id="${escapeHTML(video.id)}"
-          aria-label="從目前 Dataset 刪除 ${escapeHTML(video.title)}"
-        >刪除</button>
-      </div>
+      <option value="${escapeHTML(video.id)}">
+        ${escapeHTML(video.title)} · ${escapeHTML(video.duration)} · ${video.timestamps.length} 個時間點
+      </option>
     `).join("")
-    : `<div class="timestamp-empty">目前沒有影片，請新增 YouTube 影片。</div>`;
+    : `<option value="">目前沒有影片，請先新增影片</option>`;
+  videoSelect.value = selectedVideoId === null ? "" : String(selectedVideoId);
+  removeVideoButton.hidden = !selectedVideoId;
+}
 
-  $$(".video-item").forEach((button) => {
-    button.addEventListener("click", () => {
-      selectedVideoId = Number(button.dataset.videoId);
-      annotationDirty = false;
-      renderVideoList();
-      renderSelectedVideo();
-    });
-  });
+async function removeSelectedVideo() {
+  const videos = getCurrentVideoList();
+  const videoId = Number($("#videoList").value);
+  const video = videos.find((item) => item.id === videoId);
+  const datasetName = $("#annotationDatasetSelect").value;
+  const dataset = datasetRecords.get(datasetName);
+  if (!video || !dataset) return;
 
-  $$(".remove-video").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const videoId = Number(button.dataset.videoId);
-      const video = videos.find((item) => item.id === videoId);
-      const datasetName = $("#annotationDatasetSelect").value;
-      const dataset = datasetRecords.get(datasetName);
-      if (!video || !dataset) return;
-      const unsavedWarning =
-        selectedVideoId === video.id && annotationDirty
-          ? "目前尚未儲存的時間點修改也會一起丟失。"
-          : "";
-      if (!window.confirm(
-        `確定要從「${datasetName}」移除「${video.title}」嗎？${unsavedWarning}`
-      )) {
-        return;
-      }
+  const unsavedWarning = annotationDirty
+    ? "目前尚未儲存的時間點修改也會一起丟失。"
+    : "";
+  if (!window.confirm(
+    `確定要從「${datasetName}」移除「${video.title}」嗎？${unsavedWarning}`
+  )) {
+    return;
+  }
 
-      button.disabled = true;
-      try {
-        await datasetApiRequest(
-          `datasets/${dataset.id}/videos/${video.id}`,
-          { method: "DELETE" }
-        );
-        const index = videos.findIndex((item) => item.id === video.id);
-        if (index >= 0) videos.splice(index, 1);
-        if (selectedVideoId === video.id) {
-          selectedVideoId = videos[0]?.id || null;
-          annotationDirty = false;
-        }
-        renderVideoList();
-        renderSelectedVideo();
-        renderComparison();
-        showToast("已從目前 Dataset 移除影片；影片標註仍保留。");
-      } catch (error) {
-        handleDatasetApiError("移除影片失敗", error);
-        button.disabled = false;
-      }
-    });
-  });
+  const button = $("#removeVideoButton");
+  button.disabled = true;
+  try {
+    await datasetApiRequest(
+      `datasets/${dataset.id}/videos/${video.id}`,
+      { method: "DELETE" }
+    );
+    const index = videos.findIndex((item) => item.id === video.id);
+    if (index >= 0) videos.splice(index, 1);
+    selectedVideoId = videos[0]?.id || null;
+    annotationDirty = false;
+    renderVideoList();
+    renderSelectedVideo();
+    renderComparison();
+    showToast("已從目前 Dataset 移除影片；影片標註仍保留。");
+  } catch (error) {
+    handleDatasetApiError("移除影片失敗", error);
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function renderSelectedVideo() {
@@ -733,6 +715,15 @@ $("#annotationDatasetSelect").addEventListener("change", async () => {
     handleDatasetApiError("讀取 Dataset 影片失敗", error);
   }
 });
+
+$("#videoList").addEventListener("change", () => {
+  selectedVideoId = Number($("#videoList").value) || null;
+  annotationDirty = false;
+  renderVideoList();
+  renderSelectedVideo();
+});
+
+$("#removeVideoButton").addEventListener("click", removeSelectedVideo);
 
 $("#addTimestampButton").addEventListener("click", () => {
   const video = getSelectedVideo();

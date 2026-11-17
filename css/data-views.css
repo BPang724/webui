@@ -172,77 +172,52 @@
   margin-bottom: 24px;
 }
 
-.annotation-layout {
-  display: grid;
-  grid-template-columns: minmax(270px, 340px) minmax(0, 1fr);
-  align-items: start;
-  gap: 22px;
-}
-
-.video-list-panel,
-.annotation-panel {
-  min-width: 0;
-  padding: 24px;
-}
-
-.video-list {
+.video-selector-panel {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+
+.video-selector-heading {
+  display: flex;
+  align-items: baseline;
+  flex: 0 0 auto;
+  gap: 12px;
+}
+
+.video-selector-heading label {
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.video-selector-heading .section-subtitle {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.video-selector-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 1 760px;
+  min-width: 0;
   gap: 10px;
 }
 
-.video-item-row {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
+.video-selector-controls .select {
+  max-width: 760px;
 }
 
-.video-item {
-  width: 100%;
-  min-width: 0;
-  flex: 1;
-  padding: 17px;
-
-  border: 1px solid var(--border);
-  border-radius: 10px;
-
-  background: white;
-  text-align: left;
-
-  transition: background 150ms ease, border-color 150ms ease;
-}
-
-.video-item:hover {
-  border-color: #b5c2eb;
-}
-
-.video-item.active {
-  border-color: var(--primary);
-  background: var(--primary-light);
-  box-shadow: 0 0 0 2px rgb(73 104 232 / 8%);
-}
-
-.remove-video {
+.video-remove-button[hidden] {
   display: none;
-  width: 100%;
-  justify-content: center;
 }
 
-.video-item-row.active .remove-video {
-  display: inline-flex;
-}
-
-.video-item-title {
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.6;
-}
-
-.video-item-meta {
-  margin-top: 7px;
-  color: var(--muted);
-  font-size: 13px;
+.annotation-panel {
+  min-width: 0;
+  padding: 24px;
 }
 
 .annotation-video-header {
@@ -325,12 +300,23 @@
   color: white;
 }
 
+.annotation-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(340px, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.timestamp-editor {
+  min-width: 0;
+}
+
 .timestamp-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin: 26px 0 16px;
+  margin: 0 0 16px;
 }
 
 .timestamp-list {

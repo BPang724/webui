@@ -528,34 +528,42 @@
             </button>
           </div>
 
-          <div class="annotation-layout">
-            <section class="card video-list-panel">
-              <div class="section-heading">
-                <div>
-                  <h3 class="section-title">影片清單</h3>
-                  <p class="section-subtitle" id="videoCount">共 0 部影片</p>
-                </div>
+          <section class="card video-selector-panel">
+            <div class="video-selector-heading">
+              <label for="videoList">影片清單</label>
+              <span class="section-subtitle" id="videoCount">共 0 部影片</span>
+            </div>
+            <div class="video-selector-controls">
+              <select class="select" id="videoList" aria-label="選取影片" disabled>
+                <option value="">尚未選取影片</option>
+              </select>
+              <button
+                class="btn btn-small btn-danger video-remove-button"
+                id="removeVideoButton"
+                type="button"
+                aria-label="從目前 Dataset 刪除所選影片"
+                hidden
+              >刪除影片</button>
+            </div>
+          </section>
+
+          <section class="card annotation-panel">
+            <div class="annotation-video-header">
+              <div>
+                <p class="eyebrow">GROUND TRUTH EDITOR</p>
+                <h3 class="section-title" id="selectedVideoTitle">
+                  尚未選取影片
+                </h3>
+                <p class="section-subtitle" id="selectedVideoMeta">
+                  請先建立 Dataset 並新增影片
+                </p>
               </div>
+              <span class="badge badge-warning" id="annotationStatus">
+                尚未儲存
+              </span>
+            </div>
 
-              <div class="video-list" id="videoList"></div>
-            </section>
-
-            <section class="card annotation-panel">
-              <div class="annotation-video-header">
-                <div>
-                  <p class="eyebrow">GROUND TRUTH EDITOR</p>
-                  <h3 class="section-title" id="selectedVideoTitle">
-                    尚未選取影片
-                  </h3>
-                  <p class="section-subtitle" id="selectedVideoMeta">
-                    請先建立 Dataset 並新增影片
-                  </p>
-                </div>
-                <span class="badge badge-warning" id="annotationStatus">
-                  尚未儲存
-                </span>
-              </div>
-
+            <div class="annotation-content-grid">
               <div class="video-preview">
                 <div class="preview-icon">▶</div>
                 <h4>影片預覽區</h4>
@@ -564,31 +572,33 @@
                 </p>
               </div>
 
-              <div class="timestamp-heading">
-                <div>
-                  <h4 class="section-title">投影片切換時間點</h4>
-                  <p class="section-subtitle">
-                    依序輸入小時、分鐘、秒鐘；每段輸入兩位數後會自動跳到下一段。
-                  </p>
+              <div class="timestamp-editor">
+                <div class="timestamp-heading">
+                  <div>
+                    <h4 class="section-title">投影片切換時間點</h4>
+                    <p class="section-subtitle">
+                      依序輸入小時、分鐘、秒鐘；每段輸入兩位數後會自動跳到下一段。
+                    </p>
+                  </div>
+
+                  <button class="btn btn-primary" id="addTimestampButton" type="button">
+                    ＋ 新增時間點
+                  </button>
                 </div>
 
-                <button class="btn btn-primary" id="addTimestampButton" type="button">
-                  ＋ 新增時間點
-                </button>
-              </div>
+                <div class="timestamp-list" id="timestampList"></div>
 
-              <div class="timestamp-list" id="timestampList"></div>
-
-              <div class="annotation-footer">
-                <div class="annotation-summary" id="timestampSummary">
-                  共 0 個 Ground Truth 時間點
+                <div class="annotation-footer">
+                  <div class="annotation-summary" id="timestampSummary">
+                    共 0 個 Ground Truth 時間點
+                  </div>
+                  <button class="btn btn-primary" id="saveAnnotationButton" type="button">
+                    儲存標註
+                  </button>
                 </div>
-                <button class="btn btn-primary" id="saveAnnotationButton" type="button">
-                  儲存標註
-                </button>
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
         </section>
 
         <!-- ==================== COMPARE ==================== -->
