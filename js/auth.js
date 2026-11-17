@@ -60,10 +60,7 @@ async function initializeAuthUI() {
       element.classList.toggle("hidden", !canAccessExperiments);
     });
     if (canAccessExperiments) {
-      loadDatasetList().catch((error) => {
-        handleDatasetApiError("載入 Dataset 清單失敗", error);
-      });
-      navigateToPage("workflow");
+      navigateToPage("video");
     }
   } catch (error) {
     console.error("無法讀取登入狀態", error);

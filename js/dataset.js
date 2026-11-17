@@ -10,6 +10,8 @@ let annotationDirty = false;
 let datasetLoadVersion = 0;
 let datasetVideosLoadVersion = 0;
 let addingVideo = false;
+let datasetListLoaded = false;
+let datasetListPromise = null;
 
 function datasetApiUrl(path) {
   return new URL(`api/${path}`, window.location.href);
@@ -67,6 +69,7 @@ async function loadDatasetList() {
   const datasets = await datasetApiRequest("datasets");
   if (requestVersion !== datasetLoadVersion) return;
 
+  datasetVideosLoadVersion += 1;
   for (const name of Object.keys(videoData)) delete videoData[name];
   datasetRecords.clear();
   datasets.forEach((dataset) => {
@@ -78,10 +81,26 @@ async function loadDatasetList() {
   renderVideoList();
   renderSelectedVideo();
   renderComparison();
+  datasetListLoaded = true;
+}
 
-  const selectedDataset = datasetRecords.get($("#annotationDatasetSelect").value);
-  if (selectedDataset) {
-    await loadDatasetVideos(selectedDataset);
+async function ensureDatasetListLoaded() {
+  if (datasetListLoaded) return;
+  if (!datasetListPromise) {
+    datasetListPromise = loadDatasetList().finally(() => {
+      datasetListPromise = null;
+    });
+  }
+  await datasetListPromise;
+}
+
+async function loadDatasetsForPage(pageName) {
+  await ensureDatasetListLoaded();
+  if (pageName !== "dataset") return;
+
+  const dataset = datasetRecords.get($("#annotationDatasetSelect").value);
+  if (dataset) {
+    await loadDatasetVideos(dataset);
   }
 }
 
@@ -206,6 +225,7 @@ function renderVideoList() {
 
 function renderSelectedVideo() {
   const video = getSelectedVideo();
+  const preview = $("#page-dataset .video-preview");
 
   if (!video) {
     const hasDataset = Boolean($("#annotationDatasetSelect").value);
@@ -215,7 +235,8 @@ function renderSelectedVideo() {
       : "請先建立並選擇 Dataset。";
     $("#annotationStatus").textContent = "尚未儲存";
     $("#annotationStatus").className = "badge badge-warning";
-    $("#page-dataset .video-preview").innerHTML = `
+    preview.className = "video-preview";
+    preview.innerHTML = `
       <div class="preview-icon">▶</div>
       <h4>${hasDataset ? "尚未新增影片" : "尚未選擇 Dataset"}</h4>
       <p>${hasDataset
@@ -232,17 +253,22 @@ function renderSelectedVideo() {
   $("#selectedVideoMeta").textContent =
     `${$("#annotationDatasetSelect").value} · 影片長度 ${video.duration}`;
   if (video.youtubeId) {
-    $("#page-dataset .video-preview").innerHTML = `
-      <div class="preview-icon">▶</div>
-      <h4>YouTube 影片已加入 Dataset</h4>
-      <p>
-        <a href="${escapeHTML(video.url)}" target="_blank" rel="noopener noreferrer">
-          在 YouTube 開啟影片
-        </a>
-      </p>
+    preview.className = "video-preview video-preview-playing";
+    preview.innerHTML = `
+      <div class="youtube-embed">
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(video.youtubeId)}"
+          title="${escapeHTML(video.title)}"
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </div>
     `;
   } else {
-    $("#page-dataset .video-preview").innerHTML = `
+    preview.className = "video-preview";
+    preview.innerHTML = `
       <div class="preview-icon">▶</div>
       <h4>影片預覽區</h4>
       <p>
@@ -524,6 +550,7 @@ async function createDataset() {
     });
     datasetRecords.set(dataset.name, dataset);
     videoData[dataset.name] = [];
+    datasetListLoaded = true;
     renderDatasetOptions(dataset.name);
     selectedVideoId = null;
     annotationDirty = false;
@@ -586,6 +613,7 @@ $("#confirmDeleteDatasetButton").addEventListener("click", async () => {
     await datasetApiRequest(`datasets/${dataset.id}`, { method: "DELETE" });
     datasetRecords.delete(datasetName);
     delete videoData[datasetName];
+    datasetListLoaded = true;
     $("#deleteDatasetDialog").close();
     datasetVideosLoadVersion += 1;
     selectedVideoId = null;

@@ -269,6 +269,29 @@
   text-align: center;
 }
 
+.video-preview-playing {
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: #000;
+}
+
+.youtube-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.youtube-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .preview-icon {
   width: 62px;
   height: 62px;

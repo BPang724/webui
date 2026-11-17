@@ -66,6 +66,12 @@ function navigateToPage(pageName) {
   $("#pageTitle").textContent = pageNames[pageName];
   $("#breadcrumbCurrent").textContent = pageNames[pageName];
 
+  if (["overview", "workflow", "dataset", "compare"].includes(pageName)) {
+    loadDatasetsForPage(pageName).catch((error) => {
+      handleDatasetApiError("載入 Dataset 資料失敗", error);
+    });
+  }
+
   if (pageName === "compare") {
     renderComparison();
   }
@@ -100,4 +106,3 @@ $$("[data-go-page]").forEach((button) => {
     navigateToPage(button.dataset.goPage);
   });
 });
-
